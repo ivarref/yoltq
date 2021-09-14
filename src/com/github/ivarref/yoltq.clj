@@ -75,11 +75,11 @@
                          (fn [old-conf]
                            (-> (merge-with (fn [a b] (or b a))
                                            {:running-queues     (atom #{})
-                                            :start-execute-time (atom {})}
+                                            :start-execute-time (atom {})
+                                            :system-error       (atom {})}
                                            default-opts
-                                           old-conf
+                                           (select-keys old-conf [:handlers])
                                            cfg)
-                               (assoc :system-error (atom {}))
                                u/duration->nanos)))]
       new-cfg)))
 
@@ -160,9 +160,9 @@
       (let [ok-items (atom [])
             conn (d/connect uri)
             n 100]
-        (init! {:conn                          conn
-                :error-backoff-time            (Duration/ofSeconds 1)
-                :poll-delay                    (Duration/ofSeconds 1)})
+        (init! {:conn               conn
+                :error-backoff-time (Duration/ofSeconds 1)
+                :poll-delay         (Duration/ofSeconds 1)})
         (add-consumer! :q (fn [payload]
                             (when (> (Math/random) 0.5)
                               (throw (ex-info "oops" {})))
