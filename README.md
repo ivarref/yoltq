@@ -8,7 +8,7 @@ On-prem only.
 
 ## Installation
 
-...
+[![Clojars Project](https://img.shields.io/clojars/v/com.github.ivarref/yoltq.svg)](https://clojars.org/com.github.ivarref/yoltq)
 
 ## 1-minute example
 
