@@ -78,7 +78,7 @@
                                             :start-execute-time (atom {})
                                             :system-error       (atom {})}
                                            default-opts
-                                           (select-keys old-conf [:handlers])
+                                           (if *test-mode* old-conf (select-keys old-conf [:handlers]))
                                            cfg)
                                u/duration->nanos)))]
       new-cfg)))
