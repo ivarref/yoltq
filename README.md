@@ -31,7 +31,7 @@ On-prem only.
                      ; This includes nil, false and everything else.
                      (log/info "got payload" payload))))
 
-; Start threadpool
+; Start threadpool that picks up queue jobs
 (yq/start!)
 
 ; Queue a job
@@ -85,7 +85,6 @@ The queue way to solve this would be:
   (let [{:some/keys [id] :as db-item} (process user-input)
     @(d/transact conn [db-item
                        (yq/put :get-ext-ref {:id id})])))
-
 ```
 
 Here `post-handler` will always succeed as long as the transaction commits.
@@ -103,3 +102,92 @@ the database function [:db/cas (compare-and-swap)](https://docs.datomic.com/on-p
 to achieve a write-once behaviour.
 The yoltq system treats cas failures as job successes
 when a consumer has `:allow-cas-failure?` set to `true` in its options.
+
+## How it works
+
+### Queue jobs
+
+Creating queue jobs is done by `@(d/transact conn [...other data... (yq/put :q {:work 123})])`.
+Inspecting `(yq/put :q {:work 123})]` you will see something like this:
+
+```clojure
+#:com.github.ivarref.yoltq{:id #uuid"614232a8-e031-45bb-8660-be146eaa32a2", ; Queue job id 
+                           :queue-name :q, ; Destination queue                                 
+                           :status :init, ; Status
+                           :payload "{:work 123}", ; Payload persisted to the database with pr-str
+                           :bindings "{}", 
+                           :lock #uuid"037d7da1-5158-4243-8f72-feb1e47e15ca", ; Lock to protect from multiple consumers
+                           :tries 0, ; How many times the job has been executed
+                           :init-time 4305758012289 ; Time of initialization (System/nanoTime)
+                           }
+```
+
+This is the queue job as it will be stored into the database. 
+You can see that the payload, i.e. the second argument of `yq/put`,
+is persisted into the database. Thus the payload must be `pr-str`-able.
+
+
+A queue job will initially have status `:init`.
+It will then transition to the following statuses:
+
+* `:processing`: When the queue job begins processing in the queue consumer function.
+* `:done`: If the queue consumer function returns normally.
+* `:error`: If the queue consumer function throws an exception.
+
+### Queue consumers
+
+...
+
+### Listening for queue jobs
+
+When `(yq/start!)` is invoked, a threadpool is started.
+
+One thread is permanently allocated for listening to the 
+[tx-report-queue](https://docs.datomic.com/on-prem/clojure/index.html#datomic.api/tx-report-queue)
+and responding to changes. This means that yoltq will respond 
+and process newly created queue jobs fairly quickly.
+This also means that queue jobs in status `:init` will almost always* be processed without
+any type of backoff.
+
+This pool also schedules polling jobs that will regularly check for various statuses:
+
+* Jobs in status `:error` that have waited for at least `:error-backoff-time` (default: 5 seconds) will be retried.
+* Jobs that have been in `:processing` for at least `:hung-backoff-time` (default: 30 minutes) will be considered hung and retried.
+* Old `:init-backoff-time` (default: 1 minute) `:init` jobs that have not been processed. *Queue jobs can be left in status `:init` during application restart/upgrade, and thus the need for this strategy.
+
+
+### Retry and backoff strategy
+
+Yoltq assumes that if a queue consumer throws an exception for one item, it
+will also do the same for another item in the immediate future, 
+assuming the remote system that the queue consumer represents is still down.
+Thus if there are ten failures for queue `:q`, it does not make sense to
+retry all of them at once.
+
+The retry polling job that runs regularly (`:poll-delay`, default: every 10 seconds)
+thus stops at the first failure.
+Each queue have their own polling job, so if one queue is down, it will not stop
+retrying every other queue.
+
+The retry polling job will continue to eagerly process queue jobs as long as it 
+encounters only successes.
+
+While the `:error-backoff-time` of default 5 seconds may seem short, in practice
+if there is a lot of failed items and the external system is still down,
+the actual backoff time will be longer.
+
+
+### Ordering
+
+There is no attempt at ordering the execution of queue jobs.
+In fact the opposite is done to guard against the case that a single failing queue job
+could effectively take down the entire retry polling job.
+
+### Stuck threads
+
+A single thread is dedicated to monitoring how much time a queue consumer 
+spends on a single job. If this exceeds `:hung-backoff-time` (default: 30 minutes),
+the queue job will be marked as failed and the stack trace of the offending
+consumer will be logged.
+
+### Total health and system sanity 
