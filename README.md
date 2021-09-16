@@ -136,7 +136,24 @@ It will then transition to the following statuses:
 
 ### Queue consumers
 
-...
+Queue jobs will be consumed by queue consumers. A consumer is a function taking a single argument,
+the payload. It can be added like this:
+
+```clojure
+(yq/add-consumer! 
+  :q ; Queue to consume  
+  (fn [payload] (println "got payload:" payload)) ; Queue consumer function
+  ; An optional map of queue opts
+  {:allow-cas-failure? true ; Treat [:db.cas ...] failures as success. This is one way for the
+                            ; consumer function to ensure idempotence.
+   :max-retries 10})        ; Specify maximum number of times an item will be retried. Default: 100
+```
+
+The `payload` will be deserialized from the database using `clojure.edn/read-string` before invocation, i.e.
+you will get back what you put into `yq/put`.
+
+The yoltq system treats a queue consumer function invocation as successful if it does not throw an exception.
+Thus any regular return value, be it `nil`, `false`, `true`, etc. is considered a success.
 
 ### Listening for queue jobs
 
@@ -146,8 +163,8 @@ One thread is permanently allocated for listening to the
 [tx-report-queue](https://docs.datomic.com/on-prem/clojure/index.html#datomic.api/tx-report-queue)
 and responding to changes. This means that yoltq will respond 
 and process newly created queue jobs fairly quickly.
-This also means that queue jobs in status `:init` will almost always* be processed without
-any type of backoff.
+This also means that queue jobs in status `:init` will almost always be processed without
+any type of backoff*.
 
 This pool also schedules polling jobs that will regularly check for various statuses:
 
@@ -166,8 +183,8 @@ retry all of them at once.
 
 The retry polling job that runs regularly (`:poll-delay`, default: every 10 seconds)
 thus stops at the first failure.
-Each queue have their own polling job, so if one queue is down, it will not stop
-retrying every other queue.
+Each queue have their own polling job, so if one queue is down, it will *not* stop
+other queues from retrying.
 
 The retry polling job will continue to eagerly process queue jobs as long as it 
 encounters only successes.
@@ -177,17 +194,33 @@ if there is a lot of failed items and the external system is still down,
 the actual backoff time will be longer.
 
 
+### Stuck threads and stale jobs
+
+A single thread is dedicated to monitoring how much time a queue consumer 
+spends on a single job. If this exceeds `:max-execute-time` (default: 5 minutes)
+the stack trace of the offending consumer will be logged as `:ERROR`.
+
+If a job is found stale, that is if the database spent time exceeds 
+`:hung-backoff-time` (default: 30 minutes),
+the job will either be retried or marked as `:error`. This case may happen if the application
+is shut down abruptly during processing of queue jobs.
+
+
+### Giving up
+
+A queue job will remain in status `:error` once `:max-retries` (default: 100) have been reached.
+Ideally this will not happen.
+
+
+### Total health and system sanity
+
+
+
+## Misc
+
 ### Ordering
 
 There is no attempt at ordering the execution of queue jobs.
 In fact the opposite is done to guard against the case that a single failing queue job
 could effectively take down the entire retry polling job.
 
-### Stuck threads
-
-A single thread is dedicated to monitoring how much time a queue consumer 
-spends on a single job. If this exceeds `:hung-backoff-time` (default: 30 minutes),
-the queue job will be marked as failed and the stack trace of the offending
-consumer will be logged.
-
-### Total health and system sanity 
