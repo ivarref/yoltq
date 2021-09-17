@@ -146,17 +146,18 @@
 (defmacro consume-expect! [queue-name expected-status]
   `(if-let [job# (get-tx-q-job ~queue-name)]
      (try
-       (let [res# (some->>
-                    (u/prepare-processing (:com.github.ivarref.yoltq/id job#)
-                                          ~queue-name
-                                          (:com.github.ivarref.yoltq/lock job#)
-                                          (:com.github.ivarref.yoltq/status job#))
-                    (i/take! @yq/*config*)
-                    (i/execute! @yq/*config*))]
-         (test/is (= ~expected-status (:com.github.ivarref.yoltq/status res#)))
-         (if (:retval res#)
-           (:retval res#)
-           (:exception res#)))
+       (with-bindings (:com.github.ivarref.yoltq/bindings job#)
+         (let [res# (some->> (u/prepare-processing (d/db (:conn @yq/*config*))
+                                                   (:com.github.ivarref.yoltq/id job#)
+                                                   ~queue-name
+                                                   (:com.github.ivarref.yoltq/lock job#)
+                                                   (:com.github.ivarref.yoltq/status job#))
+                             (i/take! @yq/*config*)
+                             (i/execute! @yq/*config*))]
+           (test/is (= ~expected-status (:com.github.ivarref.yoltq/status res#)))
+           (if (:retval res#)
+             (:retval res#)
+             (:exception res#))))
        (catch Throwable t#
          (log/error t# "unexpected error in consume-expect:" (ex-message t#))))
      (test/is nil (str "No job found for queue " ~queue-name))))

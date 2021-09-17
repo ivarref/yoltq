@@ -56,14 +56,22 @@
   (-> (d/pull db '[:*] [:com.github.ivarref.yoltq/id id])
       (dissoc :db/id)
       (update :com.github.ivarref.yoltq/payload edn/read-string)
-      (update :com.github.ivarref.yoltq/bindings edn/read-string)))
+      (update :com.github.ivarref.yoltq/bindings
+              (fn [s]
+                (when s
+                  (->> s
+                       (edn/read-string)
+                       (reduce-kv (fn [o k v]
+                                    (assoc o (resolve k) v))
+                                  {})))))))
 
 
-(defn prepare-processing [id queue-name old-lock old-status]
+(defn prepare-processing [db id queue-name old-lock old-status]
   (let [new-lock (random-uuid)]
     {:id         id
      :lock       new-lock
      :queue-name queue-name
+     :bindings   (get (get-queue-item db id) :com.github.ivarref.yoltq/bindings {})
      :tx         [[:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/lock old-lock new-lock]
                   [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/status old-status status-processing]
                   {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/processing-time (now-ns)}]}))
@@ -73,29 +81,31 @@
   (assert (instance? Connection conn) (str "Expected conn to be of type datomic.Connection. Was: "
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
-  (if-let [ids (->> (d/q '[:find ?id ?lock
-                           :in $ ?queue-name ?backoff
-                           :where
-                           [?e :com.github.ivarref.yoltq/status :init]
-                           [?e :com.github.ivarref.yoltq/queue-name ?queue-name]
-                           [?e :com.github.ivarref.yoltq/init-time ?init-time]
-                           [(>= ?backoff ?init-time)]
-                           [?e :com.github.ivarref.yoltq/id ?id]
-                           [?e :com.github.ivarref.yoltq/lock ?lock]]
-                         (or db (d/db conn))
-                         queue-name
-                         (- (now-ns) init-backoff-time))
-                    (not-empty))]
-    (let [[id old-lock] (rand-nth (into [] ids))]
-      (prepare-processing id queue-name old-lock :init))
-    (log/trace "no new-items in :init status for queue" queue-name)))
+  (let [db (or db (d/db conn))]
+    (if-let [ids (->> (d/q '[:find ?id ?lock
+                             :in $ ?queue-name ?backoff
+                             :where
+                             [?e :com.github.ivarref.yoltq/status :init]
+                             [?e :com.github.ivarref.yoltq/queue-name ?queue-name]
+                             [?e :com.github.ivarref.yoltq/init-time ?init-time]
+                             [(>= ?backoff ?init-time)]
+                             [?e :com.github.ivarref.yoltq/id ?id]
+                             [?e :com.github.ivarref.yoltq/lock ?lock]]
+                           db
+                           queue-name
+                           (- (now-ns) init-backoff-time))
+                      (not-empty))]
+      (let [[id old-lock] (rand-nth (into [] ids))]
+        (prepare-processing db id queue-name old-lock :init))
+      (log/trace "no new-items in :init status for queue" queue-name))))
 
 
 (defn get-error [{:keys [conn db error-backoff-time max-retries] :as cfg} queue-name]
   (assert (instance? Connection conn) (str "Expected conn to be of type datomic.Connection. Was: "
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
-  (let [max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)]
+  (let [db (or db (d/db conn))
+        max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)]
     (when-let [ids (->> (d/q '[:find ?id ?lock
                                :in $ ?queue-name ?backoff ?max-tries
                                :where
@@ -107,13 +117,13 @@
                                [(> ?max-tries ?tries)]
                                [?e :com.github.ivarref.yoltq/id ?id]
                                [?e :com.github.ivarref.yoltq/lock ?lock]]
-                             (or db (d/db conn))
+                             db
                              queue-name
                              (- (now-ns) error-backoff-time)
                              (inc max-retries))
                         (not-empty))]
       (let [[id old-lock] (rand-nth (into [] ids))]
-        (prepare-processing id queue-name old-lock :error)))))
+        (prepare-processing db id queue-name old-lock :error)))))
 
 
 (defn get-hung [{:keys [conn db now hung-backoff-time max-retries] :as cfg} queue-name]
@@ -121,7 +131,8 @@
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
   (let [now (or now (now-ns))
-        max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)]
+        max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)
+        db (or db (d/db conn))]
     (when-let [ids (->> (d/q '[:find ?id ?lock ?tries
                                :in $ ?qname ?backoff
                                :where
@@ -132,7 +143,7 @@
                                [?e :com.github.ivarref.yoltq/tries ?tries]
                                [?e :com.github.ivarref.yoltq/id ?id]
                                [?e :com.github.ivarref.yoltq/lock ?lock]]
-                             (or db (d/db conn))
+                             db
                              queue-name
                              (- now hung-backoff-time))
                         (not-empty))]
@@ -144,6 +155,7 @@
          :queue-name queue-name
          :was-hung?  true
          :to-error?  to-error?
+         :bindings   (get (get-queue-item db id) :com.github.ivarref.yoltq/bindings {})
          :tx         (if (not to-error?)
                        [[:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/lock old-lock new-lock]
                         [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/tries tries (inc tries)]

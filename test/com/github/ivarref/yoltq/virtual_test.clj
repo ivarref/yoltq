@@ -8,7 +8,9 @@
             [com.github.ivarref.yoltq.utils :as uu]
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.impl :as i]
-            [com.github.ivarref.yoltq :as yq]))
+            [com.github.ivarref.yoltq :as yq]
+            [clojure.pprint :as pprint]
+            [clojure.edn :as edn]))
 
 
 (use-fixtures :each vq/call-with-virtual-queue!)
@@ -230,3 +232,31 @@
     (is (nil? (uu/get-error (assoc-in @dq/*config* [:handlers :q :max-retries] 1) :q)))))
 
 
+(deftest consume-expect-test
+  (let [conn (u/empty-conn)
+        seen (atom #{})]
+    (dq/init! {:conn conn})
+    (dq/add-consumer! :q (fn [payload]
+                           (when (= #{1 2} (swap! seen conj payload))
+                             (throw (ex-info "oops" {})))
+                           payload))
+
+    @(d/transact conn [(dq/put :q 1)])
+    @(d/transact conn [(dq/put :q 2)])
+
+    (is (= 1 (vq/consume-expect! :q :done)))
+    (vq/consume-expect! :q :error)))
+
+
+(def ^:dynamic *some-binding* nil)
+
+
+(deftest binding-test
+  (let [conn (u/empty-conn)]
+    (dq/init! {:conn conn
+               :bindings [#'*some-binding*]})
+    (dq/add-consumer! :q (fn [_] *some-binding*))
+    (binding [*some-binding* 1] @(d/transact conn [(dq/put :q nil)]))
+    #_(binding [*some-binding* 2] @(d/transact conn [(dq/put :q nil)]))
+    #_@(d/transact conn [(dq/put :q nil)])
+    (is (= 1 (vq/consume-expect! :q :done)))))

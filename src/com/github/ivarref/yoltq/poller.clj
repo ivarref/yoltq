@@ -5,10 +5,14 @@
 
 
 (defn poll-once! [cfg q status]
-  (case status
-    :init (some->> (u/get-init cfg q) (i/take! cfg) (i/execute! cfg))
-    :error (some->> (u/get-error cfg q) (i/take! cfg) (i/execute! cfg))
-    :hung (some->> (u/get-hung cfg q) (i/take! cfg) (i/execute! cfg))))
+  (when-let [item (case status
+                    :init (u/get-init cfg q)
+                    :error (u/get-error cfg q)
+                    :hung (u/get-hung cfg q))]
+    (with-bindings (get item :bindings {})
+      (some->> item
+               (i/take! cfg)
+               (i/execute! cfg)))))
 
 
 (defn poll-queue! [running?

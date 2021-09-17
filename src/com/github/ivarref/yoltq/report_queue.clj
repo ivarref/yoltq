@@ -19,11 +19,12 @@
       (doseq [id new-ids]
         (consumer (fn []
                     (try
-                      (let [{:com.github.ivarref.yoltq/keys [lock id status queue-name]} (u/get-queue-item db-after id)]
-                        (some->>
-                          (u/prepare-processing id queue-name lock status)
-                          (i/take! cfg)
-                          (i/execute! cfg)))
+                      (let [{:com.github.ivarref.yoltq/keys [lock id status queue-name bindings]} (u/get-queue-item db-after id)]
+                        (with-bindings (or bindings {})
+                          (some->>
+                            (u/prepare-processing db-after id queue-name lock status)
+                            (i/take! cfg)
+                            (i/execute! cfg))))
                       (catch Throwable t
                         (log/error t "unexpected error in process-poll-result!")))))))))
 

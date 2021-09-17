@@ -58,6 +58,8 @@
        ; contain the stacktrace of the stuck threads.
        :pool-size                     4
 
+       :capture-bindings                      []
+
        ; How often should the system be polled for failed queue jobs
        :system-error-poll-delay       (Duration/ofMinutes 1)
 
@@ -159,17 +161,17 @@
       (d/create-database uri)
       (let [ok-items (atom [])
             conn (d/connect uri)
-            n 100]
+            n 1]
         (init! {:conn               conn
                 :error-backoff-time (Duration/ofSeconds 1)
                 :poll-delay         (Duration/ofSeconds 1)})
         (add-consumer! :q (fn [payload]
-                            (when (> (Math/random) 0.5)
-                              (throw (ex-info "oops" {})))
+                            #_(when (> (Math/random) 0.5)
+                                (throw (ex-info "oops" {})))
                             (if (= n (count (swap! received conj (:work payload))))
                               (log/info "... and we are done!")
                               (log/info "got payload" payload "total ok:" (count @received)))))
         (start!)
         (dotimes [x n]
-          @(d/transact conn [(put :q {:work x})]))
+          @(d/transact conn [(put :q {:work 123})]))
         nil))))
