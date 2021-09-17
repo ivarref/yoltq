@@ -254,9 +254,11 @@
 (deftest binding-test
   (let [conn (u/empty-conn)]
     (dq/init! {:conn conn
-               :bindings [#'*some-binding*]})
+               :capture-bindings [#'*some-binding*]})
     (dq/add-consumer! :q (fn [_] *some-binding*))
     (binding [*some-binding* 1] @(d/transact conn [(dq/put :q nil)]))
-    #_(binding [*some-binding* 2] @(d/transact conn [(dq/put :q nil)]))
-    #_@(d/transact conn [(dq/put :q nil)])
-    (is (= 1 (vq/consume-expect! :q :done)))))
+    (binding [*some-binding* 2] @(d/transact conn [(dq/put :q nil)]))
+    @(d/transact conn [(dq/put :q nil)])
+    (is (= 1 (vq/consume-expect! :q :done)))
+    (is (= 2 (vq/consume-expect! :q :done)))
+    (is (nil? (vq/consume-expect! :q :done)))))
