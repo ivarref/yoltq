@@ -115,7 +115,7 @@ Inspecting `(yq/put :q {:work 123})]` you will see something like this:
                            :queue-name :q, ; Destination queue                                 
                            :status :init, ; Status
                            :payload "{:work 123}", ; Payload persisted to the database with pr-str
-                           :bindings "{}", 
+                           :bindings "{}", ; Bindings that will be applied before executing consumer function
                            :lock #uuid"037d7da1-5158-4243-8f72-feb1e47e15ca", ; Lock to protect from multiple consumers
                            :tries 0, ; How many times the job has been executed
                            :init-time 4305758012289 ; Time of initialization (System/nanoTime)
@@ -153,7 +153,7 @@ The `payload` will be deserialized from the database using `clojure.edn/read-str
 you will get back what you put into `yq/put`.
 
 The yoltq system treats a queue consumer function invocation as successful if it does not throw an exception.
-Thus any regular return value, be it `nil`, `false`, `true`, etc. is considered a success.
+Any return value, be it `nil`, `false`, `true`, etc. is considered a success.
 
 ### Listening for queue jobs
 
@@ -166,7 +166,7 @@ and process newly created queue jobs fairly quickly.
 This also means that queue jobs in status `:init` will almost always be processed without
 any type of backoff*.
 
-This pool also schedules polling jobs that will regularly check for various statuses:
+The threadpool also schedules polling jobs that will check for various statuses regularly:
 
 * Jobs in status `:error` that have waited for at least `:error-backoff-time` (default: 5 seconds) will be retried.
 * Jobs that have been in `:processing` for at least `:hung-backoff-time` (default: 30 minutes) will be considered hung and retried.
@@ -210,6 +210,10 @@ is shut down abruptly during processing of queue jobs.
 
 A queue job will remain in status `:error` once `:max-retries` (default: 100) have been reached.
 Ideally this will not happen.
+
+
+### Logging
+
 
 
 ### Total health and system sanity

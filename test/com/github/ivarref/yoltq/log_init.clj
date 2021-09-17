@@ -39,6 +39,9 @@
                   " "
                   (color-f (min-length 5 (str/upper-case (name level))))
                   " "
+
+                  (when-let [x-req-id (:x-request-id context)]
+                    (str "[" x-req-id "] "))
                   #_(.getName ^Thread (Thread/currentThread))
 
                   (color-f (force msg_))

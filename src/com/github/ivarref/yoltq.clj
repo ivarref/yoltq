@@ -1,6 +1,5 @@
 (ns com.github.ivarref.yoltq
-  (:require [datomic-schema.core]
-            [datomic.api :as d]
+  (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.impl :as i]
             [com.github.ivarref.yoltq.report-queue :as rq]
@@ -58,7 +57,9 @@
        ; contain the stacktrace of the stuck threads.
        :pool-size                     4
 
-       :capture-bindings                      []
+       :capture-bindings              (if-let [s (resolve (symbol "taoensso.timbre/*context*"))]
+                                        [s]
+                                        [])
 
        ; How often should the system be polled for failed queue jobs
        :system-error-poll-delay       (Duration/ofMinutes 1)

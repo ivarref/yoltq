@@ -9,8 +9,7 @@
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.impl :as i]
             [com.github.ivarref.yoltq :as yq]
-            [clojure.pprint :as pprint]
-            [clojure.edn :as edn]))
+            [taoensso.timbre :as timbre]))
 
 
 (use-fixtures :each vq/call-with-virtual-queue!)
@@ -254,11 +253,24 @@
 (deftest binding-test
   (let [conn (u/empty-conn)]
     (dq/init! {:conn conn
-               :capture-bindings [#'*some-binding*]})
+               :capture-bindings [#'*some-binding* #'timbre/*context*]})
     (dq/add-consumer! :q (fn [_] *some-binding*))
-    (binding [*some-binding* 1] @(d/transact conn [(dq/put :q nil)]))
-    (binding [*some-binding* 2] @(d/transact conn [(dq/put :q nil)]))
-    @(d/transact conn [(dq/put :q nil)])
+    (binding [timbre/*context* {:x-request-id "wooho"}]
+      (binding [*some-binding* 1]
+        @(d/transact conn [(dq/put :q nil)]))
+      (binding [*some-binding* 2]
+        @(d/transact conn [(dq/put :q nil)]))
+      @(d/transact conn [(dq/put :q nil)]))
+
     (is (= 1 (vq/consume-expect! :q :done)))
     (is (= 2 (vq/consume-expect! :q :done)))
     (is (nil? (vq/consume-expect! :q :done)))))
+
+
+(deftest default-binding-test
+  (let [conn (u/empty-conn)]
+    (dq/init! {:conn conn})
+    (dq/add-consumer! :q (fn [_] (:x-request-id timbre/*context*)))
+    (binding [timbre/*context* {:x-request-id "123"}]
+      @(d/transact conn [(dq/put :q nil)]))
+    (is (= "123" (vq/consume-expect! :q :done)))))
