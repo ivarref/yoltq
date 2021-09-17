@@ -20,15 +20,21 @@
    #:db{:ident :com.github.ivarref.yoltq/error-time, :cardinality :db.cardinality/one, :valueType :db.type/long}])
 
 
-(defn put [config queue-name payload]
+(defn put [{:keys [capture-bindings] :as config}
+           queue-name payload]
   (if-let [_ (get-in config [:handlers queue-name])]
-    (let [id (u/squuid)]
+    (let [id (u/squuid)
+          str-bindings (->> (reduce (fn [o k]
+                                      (assoc o (symbol k) (deref k)))
+                                    {}
+                                    (or capture-bindings []))
+                            (pr-str))]
       (log/debug "queue item" (str id) "for queue" queue-name "is pending status" u/status-init)
       {:com.github.ivarref.yoltq/id         id
        :com.github.ivarref.yoltq/queue-name queue-name
        :com.github.ivarref.yoltq/status     u/status-init
        :com.github.ivarref.yoltq/payload    (pr-str payload)
-       :com.github.ivarref.yoltq/bindings   (pr-str {})
+       :com.github.ivarref.yoltq/bindings   str-bindings
        :com.github.ivarref.yoltq/lock       (u/random-uuid)
        :com.github.ivarref.yoltq/tries      0
        :com.github.ivarref.yoltq/init-time  (u/now-ns)})
