@@ -20,7 +20,7 @@
     (dq/init! {:conn conn})
     (dq/add-consumer! :q identity)
     @(d/transact conn [(dq/put :q {:work 123})])
-    (is (= {:work 123} (:retval (vq/run-queue-once! :q :init))))))
+    (is (= {:work 123} (vq/consume! :q)))))
 
 
 (deftest happy-case-tx-report-q
@@ -274,3 +274,12 @@
     (binding [timbre/*context* {:x-request-id "123"}]
       @(d/transact conn [(dq/put :q nil)]))
     (is (= "123" (vq/consume-expect! :q :done)))))
+
+
+(deftest consume-twice
+  (let [conn (u/empty-conn)
+        cnt (atom 0)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q (fn [_] (swap! cnt inc)))
+    @(d/transact conn [(dq/put :q nil)])
+    (is (= 2 (vq/consume-twice! :q)))))

@@ -164,13 +164,13 @@ One thread is permanently allocated for listening to the
 and responding to changes. This means that yoltq will respond 
 and process newly created queue jobs fairly quickly.
 This also means that queue jobs in status `:init` will almost always be processed without
-any type of backoff*.
+any type of backoff.
 
 The threadpool also schedules polling jobs that will check for various statuses regularly:
 
 * Jobs in status `:error` that have waited for at least `:error-backoff-time` (default: 5 seconds) will be retried.
 * Jobs that have been in `:processing` for at least `:hung-backoff-time` (default: 30 minutes) will be considered hung and retried.
-* Old `:init-backoff-time` (default: 1 minute) `:init` jobs that have not been processed. *Queue jobs can be left in status `:init` during application restart/upgrade, and thus the need for this strategy.
+* Old `:init-backoff-time` (default: 1 minute) `:init` jobs that have not been processed. Queue jobs can be left in status `:init` during application restart/upgrade, and thus the need for this strategy.
 
 
 ### Retry and backoff strategy
@@ -212,6 +212,60 @@ A queue job will remain in status `:error` once `:max-retries` (default: 100) ha
 Ideally this will not happen.
 
 
+# Regular and REPL usage
+
+For a regular system and/or REPL session you'll want to do:
+
+```clojure
+(require '[com.github.ivarref.yoltq :as yq])
+
+(yq/init! {:conn conn})
+
+(yq/add-consumer! :q-one ...)
+(yq/add-consumer! :q-two ...)
+
+; Start yoltq system
+(yq/start!)
+
+; Oops I need another consumer. This works fine:
+(yq/add-consumer! :q-three ...)
+```
+
+You may invoke `yq/add-consumer!` and `yq/init!` on a live system as you like.
+If you change `:pool-size` or `:poll-delay` you will have to `(yq/stop!)` and
+`(yq/start!)` to make changes take effect.
+
+# Testing
+
+For testing you will probably want determinism over an extra threadpool
+by enabling the virtual queue:
+
+```clojure
+...
+(:require [clojure.test :refer :all]
+          [com.github.ivarref.yoltq :as yq]
+          [com.github.ivarref.yoltq.virtual-queue :as vq])
+
+; Enables the virtual queue and disables the threadpool for each test.
+; yq/start! and yq/stop! becomes a no-op.
+(use-fixtures :each vq/call-with-virtual-queue!)
+
+(deftest demo
+  (let [conn ...]
+    (dq/init! {:conn conn}) ; Setup
+    (dq/add-consumer! :q identity)
+    
+    @(d/transact conn [(yq/put :q {:work 123})]) ; Add work
+    
+    ; vq/consume! consumes one job and asserts that it succeeds.
+    ; It returns the return value of the consumer function
+    (is (= {:work 123} (vq/consume! :q)))))
+```
+
+
+## Other features and notes
+
+
 ### Logging
 
 
@@ -219,12 +273,24 @@ Ideally this will not happen.
 ### Total health and system sanity
 
 
-
-## Misc
-
 ### Ordering
 
 There is no attempt at ordering the execution of queue jobs.
 In fact the opposite is done to guard against the case that a single failing queue job
 could effectively take down the entire retry polling job.
 
+
+## License
+
+Copyright © 2021 Ivar Refsdal
+
+This program and the accompanying materials are made available under the
+terms of the Eclipse Public License 2.0 which is available at
+http://www.eclipse.org/legal/epl-2.0.
+
+This Source Code may also be made available under the following Secondary
+Licenses when the conditions for such availability set forth in the Eclipse
+Public License, v. 2.0 are satisfied: GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or (at your
+option) any later version, with the GNU Classpath Exception which is available
+at https://www.gnu.org/software/classpath/license.html.

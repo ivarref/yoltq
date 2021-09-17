@@ -160,4 +160,39 @@
              (:exception res#))))
        (catch Throwable t#
          (log/error t# "unexpected error in consume-expect:" (ex-message t#))))
-     (test/is nil (str "No job found for queue " ~queue-name))))
+     (test/is false (str "No job found for queue " ~queue-name))))
+tx-spent-time!
+
+(defmacro consume! [queue-name]
+  `(consume-expect! ~queue-name :done))
+
+
+(defn mark-fails! [{:keys [conn]}
+                   {:com.github.ivarref.yoltq/keys [id lock tries]}
+                   _]
+  (try
+    (let [tx [[:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/lock lock (u/random-uuid)]
+              [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/tries tries (inc tries)]
+              [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/status u/status-processing :init]]]
+      @(d/transact conn tx)
+      nil)
+    (catch Throwable t
+      (log/error t "unexpected error in mark-status!: " (ex-message t))
+      nil)))
+
+
+(defmacro consume-twice! [queue-name]
+  `(if-let [job# (get-tx-q-job ~queue-name)]
+     (try
+       (with-bindings (:com.github.ivarref.yoltq/bindings job#)
+         (some->> (u/prepare-processing (d/db (:conn @yq/*config*))
+                                        (:com.github.ivarref.yoltq/id job#)
+                                        ~queue-name
+                                        (:com.github.ivarref.yoltq/lock job#)
+                                        (:com.github.ivarref.yoltq/status job#))
+                  (i/take! @yq/*config*)
+                  (i/execute! (assoc @yq/*config* :mark-status-fn! mark-fails!)))
+         (consume! ~queue-name))
+       (catch Throwable t#
+         (log/error t# "unexpected error in consume-twice!:" (ex-message t#))))
+     (test/is false (str "No job found for queue " ~queue-name))))
