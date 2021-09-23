@@ -1,4 +1,4 @@
-(ns com.github.ivarref.yoltq.virtual-queue
+(ns com.github.ivarref.yoltq.test-queue
   (:require [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.report-queue :as rq]
             [com.github.ivarref.yoltq.ext-sys :as ext]
@@ -161,7 +161,6 @@
        (catch Throwable t#
          (log/error t# "unexpected error in consume-expect:" (ex-message t#))))
      (test/is false (str "No job found for queue " ~queue-name))))
-tx-spent-time!
 
 (defmacro consume! [queue-name]
   `(consume-expect! ~queue-name :done))
@@ -181,7 +180,7 @@ tx-spent-time!
       nil)))
 
 
-(defmacro consume-twice! [queue-name]
+(defmacro force-retry! [queue-name]
   `(if-let [job# (get-tx-q-job ~queue-name)]
      (try
        (with-bindings (:com.github.ivarref.yoltq/bindings job#)

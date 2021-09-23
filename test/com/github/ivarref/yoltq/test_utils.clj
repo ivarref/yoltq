@@ -2,7 +2,7 @@
   (:require [com.github.ivarref.yoltq.log-init :as logconfig]
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.utils :as u]
-            [com.github.ivarref.yoltq :as dq]
+            [com.github.ivarref.yoltq :as yq]
             [datomic.api :as d]
             [clojure.string :as str]
             [com.github.ivarref.yoltq.impl :as i]
@@ -35,7 +35,7 @@
 
 
 (defn put-transact! [id payload]
-  @(d/transact (:conn @dq/*config*) [(i/put @dq/*config* id payload)]))
+  @(d/transact (:conn @yq/*config*) [(i/put @yq/*config* id payload)]))
 
 
 (defn advance! [tp]
@@ -50,25 +50,25 @@
          :where
          [?e :com.github.ivarref.yoltq/id _]
          [?e :com.github.ivarref.yoltq/status :done]]
-       (d/db (:conn @dq/*config*))))
+       (d/db (:conn @yq/*config*))))
 
 
 (defn get-init [& args]
-  (apply u/get-init @dq/*config* args))
+  (apply u/get-init @yq/*config* args))
 
 
 (defn get-error [& args]
-  (apply u/get-error @dq/*config* args))
+  (apply u/get-error @yq/*config* args))
 
 
 (defn get-hung [& args]
-  (apply u/get-hung @dq/*config* args))
+  (apply u/get-hung @yq/*config* args))
 
 
 (defn take! [& args]
-  (apply i/take! @dq/*config* args))
+  (apply i/take! @yq/*config* args))
 
 
 (defn execute! [& args]
-  (apply i/execute! @dq/*config* args))
+  (apply i/execute! @yq/*config* args))
 

@@ -243,23 +243,23 @@ by enabling the virtual queue:
 ```clojure
 ...
 (:require [clojure.test :refer :all]
-          [com.github.ivarref.yoltq :as yq]
-          [com.github.ivarref.yoltq.virtual-queue :as vq])
+  [com.github.ivarref.yoltq :as yq]
+  [com.github.ivarref.yoltq.test-queue :as tq])
 
 ; Enables the virtual queue and disables the threadpool for each test.
 ; yq/start! and yq/stop! becomes a no-op.
-(use-fixtures :each vq/call-with-virtual-queue!)
+(use-fixtures :each tq/call-with-virtual-queue!)
 
 (deftest demo
-  (let [conn ...]
-    (dq/init! {:conn conn}) ; Setup
-    (dq/add-consumer! :q identity)
-    
-    @(d/transact conn [(yq/put :q {:work 123})]) ; Add work
-    
-    ; vq/consume! consumes one job and asserts that it succeeds.
-    ; It returns the return value of the consumer function
-    (is (= {:work 123} (vq/consume! :q)))))
+         (let [conn ...]
+           (yq/init! {:conn conn}) ; Setup
+           (yq/add-consumer! :q identity)
+
+           @(d/transact conn [(yq/put :q {:work 123})]) ; Add work
+
+           ; tq/consume! consumes one job and asserts that it succeeds.
+           ; It returns the return value of the consumer function
+           (is (= {:work 123} (tq/consume! :q)))))
 ```
 
 
