@@ -94,11 +94,13 @@
    (swap! *config* (fn [old-config] (assoc-in old-config [:handlers queue-id] (merge opts {:f f}))))))
 
 
-(defn put [queue-id payload]
-  (let [{:keys [bootstrap-poller! conn] :as cfg} @*config*]
-    (when (and *test-mode* bootstrap-poller!)
-      (bootstrap-poller! conn))
-    (i/put cfg queue-id payload)))
+(defn put
+  ([queue-id payload] (put queue-id payload {}))
+  ([queue-id payload opts]
+   (let [{:keys [bootstrap-poller! conn] :as cfg} @*config*]
+     (when (and *test-mode* bootstrap-poller!)
+       (bootstrap-poller! conn))
+     (i/put cfg queue-id payload opts))))
 
 
 (defn- do-start! []

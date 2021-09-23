@@ -35,7 +35,7 @@
 
 
 (defn put-transact! [id payload]
-  @(d/transact (:conn @yq/*config*) [(i/put @yq/*config* id payload)]))
+  @(d/transact (:conn @yq/*config*) [(i/put @yq/*config* id payload {})]))
 
 
 (defn advance! [tp]

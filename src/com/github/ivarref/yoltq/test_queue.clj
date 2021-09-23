@@ -148,18 +148,21 @@
   `(if-let [job# (get-tx-q-job ~queue-name)]
      (try
        (with-bindings (:com.github.ivarref.yoltq/bindings job#)
-         (let [res# (some->> (u/prepare-processing (d/db (:conn @yq/*config*))
-                                                   (:com.github.ivarref.yoltq/id job#)
-                                                   ~queue-name
-                                                   (:com.github.ivarref.yoltq/lock job#)
-                                                   (:com.github.ivarref.yoltq/status job#))
-                             (i/take! @yq/*config*)
-                             (i/execute! @yq/*config*))]
-           (swap! (:prev-consumed @yq/*config*) assoc ~queue-name res#)
-           (test/is (= ~expected-status (:com.github.ivarref.yoltq/status res#)))
-           (if (:retval res#)
-             (:retval res#)
-             (:exception res#))))
+         (let [prep# (u/prepare-processing (d/db (:conn @yq/*config*))
+                                           (:com.github.ivarref.yoltq/id job#)
+                                           ~queue-name
+                                           (:com.github.ivarref.yoltq/lock job#)
+                                           (:com.github.ivarref.yoltq/status job#))]
+           (if-let [depends-on# (i/depends-on-waiting? @yq/*config* prep#)]
+             depends-on#
+             (let [res# (some->> prep#
+                                 (i/take! @yq/*config*)
+                                 (i/execute! @yq/*config*))]
+               (swap! (:prev-consumed @yq/*config*) assoc ~queue-name res#)
+               (test/is (= ~expected-status (:com.github.ivarref.yoltq/status res#)))
+               (if (:retval res#)
+                 (:retval res#)
+                 (:exception res#))))))
        (catch Throwable t#
          (log/error t# "unexpected error in consume-expect:" (ex-message t#))
          (throw t#)))

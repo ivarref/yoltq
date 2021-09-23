@@ -284,3 +284,30 @@
     (is (= 1 (tq/consume! :q)))
     (is (= 2 (tq/force-retry! :q)))
     (is (= 3 (tq/force-retry! :q)))))
+
+
+(deftest ext-id-no-duplicates
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q identity)
+    @(d/transact conn [(yq/put :q nil {:id "123"})])
+    (is (thrown? Exception @(d/transact conn [(yq/put :q nil {:id "123"})])))))
+
+
+(deftest depends-on
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :a identity)
+    (yq/add-consumer! :b identity)
+    @(d/transact conn [(yq/put :a "a" {:id "1"})])
+    (is (thrown? Exception @(d/transact conn [(yq/put :b "b" {:depends-on [:a "0"]})])))
+    @(d/transact conn [(yq/put :b "b" {:depends-on [:a "1"]})])
+
+    ; can't consume :b yet:
+    (is (= {:depends-on [:a "1"]} (tq/consume! :b)))
+    (is (= {:depends-on [:a "1"]} (tq/consume! :b)))
+
+    (is (= "a" (tq/consume! :a)))
+    (is (= "b" (tq/consume! :b)))
+    (is (= "b" (tq/force-retry! :b)))))
+
