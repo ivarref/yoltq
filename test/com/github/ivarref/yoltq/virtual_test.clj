@@ -282,4 +282,5 @@
                            (fn [_] (swap! cnt inc))))
     @(d/transact conn [(yq/put :q nil)])
     (is (= 1 (tq/consume! :q)))
-    #_(is (= 2 (tq/force-retry! :q)))))
+    (is (= 2 (tq/force-retry! :q)))
+    (is (= 3 (tq/force-retry! :q)))))

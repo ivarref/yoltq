@@ -67,7 +67,7 @@
           (cond
             (= :db.error/cas-failed error)
             (do
-              (log/info ":db.error/cas-failed for queue item" (str id) "and attribute" (:a m))
+              (log/info "take! :db.error/cas-failed for queue item" (str id) "and attribute" (:a m))
               (when cas-failures
                 (swap! cas-failures inc))
               nil)
