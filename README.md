@@ -3,7 +3,7 @@
 An opinionated Datomic queue for building (more) reliable systems. 
 Implements the [transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
 pattern.
-Supports retries, backoff and more.
+Supports retries, backoff, ordering and more.
 On-prem only.
 
 ## Installation
@@ -212,6 +212,12 @@ A queue job will remain in status `:error` once `:max-retries` (default: 100) ha
 Ideally this will not happen.
 
 
+### All options
+
+For an exhaustive list of all configuration options,
+see [yq/default-opts](https://github.com/ivarref/yoltq/blob/main/src/com/github/ivarref/yoltq.clj#L21).
+
+
 # Regular and REPL usage
 
 For a regular system and/or REPL session you'll want to do:
@@ -302,6 +308,19 @@ by using the test queue:
            ; :db.cas logic is correct.
            (is (= {:work 123} (tq/force-retry! :q)))))
 ```
+
+## Logging and capturing bindings
+
+Yoltq can capture and restore dynamic bindings.
+It will capture during `yq/put` and restore them when the consumer function
+is invoked. This is specified in the `:capture-bindings` settings.
+It defaults to `['#taoensso.timbre/*context*]`, 
+i.e. the [timbre](https://github.com/ptaoussanis/timbre) log context,
+if available, otherwise an empty vector.
+
+These dynamic bindings will be in place when yoltq logs errors, warnings
+etc. about failing consumer functions, possibly making troubleshooting
+easier.
 
 
 ## License
