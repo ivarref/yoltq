@@ -10,9 +10,11 @@
                     :error (u/get-error cfg q)
                     :hung (u/get-hung cfg q))]
     (with-bindings (get item :bindings {})
-      (some->> item
-               (i/take! cfg)
-               (i/execute! cfg)))))
+      (if (i/depends-on-waiting? cfg item)
+        nil
+        (some->> item
+                 (i/take! cfg)
+                 (i/execute! cfg))))))
 
 
 (defn poll-queue! [running?

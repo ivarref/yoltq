@@ -60,9 +60,9 @@
 
 
 (defn depends-on-waiting? [{:keys [conn]}
-                           {:keys [id]}]
+                           q-item]
   (let [db (d/db conn)]
-    (when-let [{:com.github.ivarref.yoltq/keys [opts]} (u/get-queue-item db id)]
+    (when-let [{:com.github.ivarref.yoltq/keys [opts]} (u/get-queue-item db (:id q-item))]
       (when-let [[q id :as depends-on] (:depends-on opts)]
         (when-not (d/q '[:find ?e .
                          :in $ ?ext-id
@@ -71,6 +71,7 @@
                          [?e :com.github.ivarref.yoltq/status :done]]
                        db
                        (pr-str [q id]))
+          (log/info "queue item" (str (:id q-item)) "is waiting on" depends-on)
           {:depends-on depends-on})))))
 
 

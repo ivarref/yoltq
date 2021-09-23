@@ -21,10 +21,12 @@
                     (try
                       (let [{:com.github.ivarref.yoltq/keys [lock id status queue-name bindings]} (u/get-queue-item db-after id)]
                         (with-bindings (or bindings {})
-                          (some->>
-                            (u/prepare-processing db-after id queue-name lock status)
-                            (i/take! cfg)
-                            (i/execute! cfg))))
+                          (if (i/depends-on-waiting? cfg {:id id})
+                            nil
+                            (some->>
+                              (u/prepare-processing db-after id queue-name lock status)
+                              (i/take! cfg)
+                              (i/execute! cfg)))))
                       (catch Throwable t
                         (log/error t "unexpected error in process-poll-result!")))))))))
 
