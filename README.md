@@ -263,7 +263,7 @@ Here queue job `b1` will not execute before `a1` is `:done`.
 Note that queue-name plus `:id` in job options must be an unique value.
 In the example above that means `:a` plus `a1` must be unique.
 
-When specifying `:depends-on`, the job must at least exist in the database,
+When specifying `:depends-on`, the referred job must at least exist in the database,
 otherwise `yq/put` will throw an exception.
 
 Other than this there is no attempt at ordering the execution of queue jobs.
