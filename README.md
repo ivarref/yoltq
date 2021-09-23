@@ -212,7 +212,7 @@ A queue job will remain in status `:error` once `:max-retries` (default: 100) ha
 Ideally this will not happen.
 
 
-### All options
+### All configuration options
 
 For an exhaustive list of all configuration options,
 see [yq/default-opts](https://github.com/ivarref/yoltq/blob/main/src/com/github/ivarref/yoltq.clj#L21).
