@@ -281,7 +281,7 @@ by using the test queue:
   [com.github.ivarref.yoltq :as yq]
   [com.github.ivarref.yoltq.test-queue :as tq])
 
-; Enables the virtual queue and disables the threadpool for each test.
+; Enables the test queue and disables the threadpool for each test.
 ; yq/start! and yq/stop! becomes a no-op.
 (use-fixtures :each tq/call-with-virtual-queue!)
 
