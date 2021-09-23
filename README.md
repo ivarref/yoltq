@@ -258,7 +258,7 @@ job to complete before it will be executed:
                            {:depends-on [:a "a1"]})])
 ```
 
-Here queue job `b1` will not execute before `:a1` is `:done`.
+Here queue job `b1` will not execute before `a1` is `:done`.
 
 Note that queue-name plus `:id` in job options must be an unique value.
 In the example above that means `:a` plus `a1` must be unique.
