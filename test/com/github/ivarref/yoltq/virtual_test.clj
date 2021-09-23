@@ -299,15 +299,11 @@
     (yq/init! {:conn conn})
     (yq/add-consumer! :a identity)
     (yq/add-consumer! :b identity)
-    @(d/transact conn [(yq/put :a "a" {:id "1"})])
-    (is (thrown? Exception @(d/transact conn [(yq/put :b "b" {:depends-on [:a "0"]})])))
-    @(d/transact conn [(yq/put :b "b" {:depends-on [:a "1"]})])
+    @(d/transact conn [(yq/put :a {:id "a1"} {:id "a1"})])
+    @(d/transact conn [(yq/put :b {:id "b1"} {:depends-on [:a "a1"]})])
 
     ; can't consume :b yet:
-    (is (= {:depends-on [:a "1"]} (tq/consume! :b)))
-    (is (= {:depends-on [:a "1"]} (tq/consume! :b)))
+    (is (= {:depends-on [:a "a1"]} (tq/consume! :b)))
 
-    (is (= "a" (tq/consume! :a)))
-    (is (= "b" (tq/consume! :b)))
-    (is (= "b" (tq/force-retry! :b)))))
-
+    (is (= {:id "a1"} (tq/consume! :a)))
+    (is (= {:id "b1"} (tq/consume! :b)))))

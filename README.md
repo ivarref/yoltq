@@ -239,6 +239,37 @@ You may invoke `yq/add-consumer!` and `yq/init!` on a live system as you like.
 If you change `:pool-size` or `:poll-delay` you will have to `(yq/stop!)` and
 `(yq/start!)` to make changes take effect.
 
+## Queue job dependencies and ordering
+
+It is possible to specify that one queue job must wait for another queue
+job to complete before it will be executed:
+
+```clojure
+@(d/transact conn [(yq/put :a 
+                           ; Payload:
+                           {:id "a1"}
+                           ; Job options:
+                           {:id "a1"})])
+
+@(d/transact conn [(yq/put :b 
+                           ; Payload:
+                           {:id "b1"}
+                           ; Jobs options:
+                           {:depends-on [:a "a1"]})])
+```
+
+Here queue job `b1` will not execute before `:a1` is `:done`.
+
+Note that queue-name plus `:id` in job options must be an unique value.
+In the example above that means `:a` plus `a1` must be unique.
+
+When specifying `:depends-on`, the job must at least exist in the database,
+otherwise `yq/put` will throw an exception.
+
+Other than this there is no attempt at ordering the execution of queue jobs.
+In fact the opposite is done in the poller to guard against the case that a single failing queue job
+could effectively take down the entire retry polling job.
+
 # Testing
 
 For testing you will probably want determinism over an extra threadpool
@@ -271,13 +302,6 @@ by using the test queue:
            ; :db.cas logic is correct.
            (is (= {:work 123} (tq/force-retry! :q)))))
 ```
-
-
-### Ordering
-
-There is no attempt at ordering the execution of queue jobs.
-In fact the opposite is done to guard against the case that a single failing queue job
-could effectively take down the entire retry polling job.
 
 
 ## License
