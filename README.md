@@ -313,7 +313,7 @@ by using the test queue:
 
 Yoltq can capture and restore dynamic bindings.
 It will capture during `yq/put` and restore them when the consumer function
-is invoked. This is specified in the `:capture-bindings` settings.
+is invoked. This is specified in the `:capture-bindings` setting.
 It defaults to `['#taoensso.timbre/*context*]`, 
 i.e. the [timbre](https://github.com/ptaoussanis/timbre) log context,
 if available, otherwise an empty vector.
