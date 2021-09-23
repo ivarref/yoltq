@@ -229,16 +229,20 @@ For a regular system and/or REPL session you'll want to do:
 
 ; Oops I need another consumer. This works fine:
 (yq/add-consumer! :q-three ...)
+
+; When the application is shutting down:
+(yq/stop!)
 ```
 
 You may invoke `yq/add-consumer!` and `yq/init!` on a live system as you like.
+
 If you change `:pool-size` or `:poll-delay` you will have to `(yq/stop!)` and
 `(yq/start!)` to make changes take effect.
 
 # Testing
 
 For testing you will probably want determinism over an extra threadpool
-by enabling the virtual queue:
+by using the test queue:
 
 ```clojure
 ...
@@ -259,18 +263,14 @@ by enabling the virtual queue:
 
            ; tq/consume! consumes one job and asserts that it succeeds.
            ; It returns the return value of the consumer function
-           (is (= {:work 123} (tq/consume! :q)))))
+           (is (= {:work 123} (tq/consume! :q)))
+           
+           ; If you want to test the idempotence of your function, 
+           ; you may force retry a consumer function:
+           ; This may for example be useful to verify that the
+           ; :db.cas logic is correct.
+           (is (= {:work 123} (tq/force-retry! :q)))))
 ```
-
-
-## Other features and notes
-
-
-### Logging
-
-
-
-### Total health and system sanity
 
 
 ### Ordering
