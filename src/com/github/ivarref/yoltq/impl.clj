@@ -37,8 +37,9 @@
            queue-name
            payload
            opts]
-  (if-let [_ (get-in config [:handlers queue-name])]
+  (if-let [q-config (get-in config [:handlers queue-name])]
     (let [id (u/squuid)
+          depends-on (get q-config :depends-on (fn [_] nil))
           str-bindings (->> (reduce (fn [o k]
                                       (assoc o (symbol k) (deref k)))
                                     {}
@@ -51,11 +52,15 @@
          :com.github.ivarref.yoltq/status     u/status-init
          :com.github.ivarref.yoltq/payload    (pr-str-safe :payload payload)
          :com.github.ivarref.yoltq/bindings   str-bindings
-         :com.github.ivarref.yoltq/opts       (pr-str-safe :opts (or opts {}))
+         :com.github.ivarref.yoltq/opts       (pr-str-safe :opts
+                                                           (merge
+                                                             (when-let [deps (depends-on payload)]
+                                                               {:depends-on deps})
+                                                             (or opts {})))
          :com.github.ivarref.yoltq/lock       (u/random-uuid)
          :com.github.ivarref.yoltq/tries      0
          :com.github.ivarref.yoltq/init-time  (u/now-ns)}
-        (when-let [[q ext-id] (:depends-on opts)]
+        (when-let [[q ext-id] (or (:depends-on opts) (depends-on payload))]
           (when-not (d/q '[:find ?e .
                            :in $ ?ext-id
                            :where

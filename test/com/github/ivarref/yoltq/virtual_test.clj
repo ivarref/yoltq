@@ -309,6 +309,21 @@
     (is (= {:id "b1"} (tq/consume! :b)))))
 
 
+(deftest depends-on-queue-level
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :a identity)
+    (yq/add-consumer! :b identity {:depends-on (fn [{:keys [id]}] [:a id])})
+    @(d/transact conn [(yq/put :a {:id "1"} {:id "1"})])
+    @(d/transact conn [(yq/put :b {:id "1"})])
+
+    ; can't consume :b yet:
+    (is (= {:depends-on [:a "1"]} (tq/consume! :b)))
+
+    (is (= {:id "1"} (tq/consume! :a)))
+    (is (= {:id "1"} (tq/consume! :b)))))
+
+
 (deftest verify-can-read-string
   (let [conn (u/empty-conn)]
     (yq/init! {:conn conn})
