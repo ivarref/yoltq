@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>com.github.ivarref</groupId>
   <artifactId>yoltq</artifactId>
-  <version>0.2.22</version>
+  <version>0.2.33</version>
   <name>yoltq</name>
   <dependencies>
     <dependency>
@@ -30,7 +30,7 @@
   <scm>
     <connection>scm:git:git://github.com/ivarref/yoltq.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/ivarref/yoltq.git</developerConnection>
-    <tag>v0.2.22</tag>
+    <tag>v0.2.33</tag>
     <url>https://github.com/ivarref/yoltq</url>
   </scm>
 </project>
