@@ -307,3 +307,11 @@
 
     (is (= {:id "a1"} (tq/consume! :a)))
     (is (= {:id "b1"} (tq/consume! :b)))))
+
+
+(deftest verify-can-read-string
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :a identity)
+    (timbre/with-level :fatal
+      (is (thrown? Exception @(d/transact conn [(yq/put :a {:broken #'=})]))))))

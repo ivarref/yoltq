@@ -3,7 +3,8 @@
             [clojure.tools.logging :as log]
             [clojure.string :as str]
             [com.github.ivarref.yoltq.utils :as u]
-            [com.github.ivarref.yoltq.ext-sys :as ext]))
+            [com.github.ivarref.yoltq.ext-sys :as ext]
+            [clojure.edn :as edn]))
 
 
 (def schema
@@ -22,6 +23,16 @@
    #:db{:ident :com.github.ivarref.yoltq/error-time, :cardinality :db.cardinality/one, :valueType :db.type/long}])
 
 
+(defn pr-str-safe [what x]
+  (try
+    (if (= x (edn/read-string (pr-str x)))
+      (pr-str x)
+      (throw (ex-info (str "Could not read-string " what) {:input x})))
+    (catch Exception e
+      (log/error "could not read-string" what ":" (ex-message e))
+      (throw e))))
+
+
 (defn put [{:keys [capture-bindings conn] :as config}
            queue-name
            payload
@@ -32,15 +43,15 @@
                                       (assoc o (symbol k) (deref k)))
                                     {}
                                     (or capture-bindings []))
-                            (pr-str))]
+                            (pr-str-safe :capture-bindings))]
       (log/debug "queue item" (str id) "for queue" queue-name "is pending status" u/status-init)
       (merge
         {:com.github.ivarref.yoltq/id         id
          :com.github.ivarref.yoltq/queue-name queue-name
          :com.github.ivarref.yoltq/status     u/status-init
-         :com.github.ivarref.yoltq/payload    (pr-str payload)
+         :com.github.ivarref.yoltq/payload    (pr-str-safe :payload payload)
          :com.github.ivarref.yoltq/bindings   str-bindings
-         :com.github.ivarref.yoltq/opts       (pr-str (or opts {}))
+         :com.github.ivarref.yoltq/opts       (pr-str-safe :opts (or opts {}))
          :com.github.ivarref.yoltq/lock       (u/random-uuid)
          :com.github.ivarref.yoltq/tries      0
          :com.github.ivarref.yoltq/init-time  (u/now-ns)}
@@ -50,10 +61,10 @@
                            :where
                            [?e :com.github.ivarref.yoltq/ext-id ?ext-id]]
                          (d/db conn)
-                         (pr-str [q ext-id]))
+                         (pr-str-safe :depends-on [q ext-id]))
             (throw (ex-info ":depends-on not found in database" opts))))
         (when-let [ext-id (:id opts)]
-          {:com.github.ivarref.yoltq/ext-id (pr-str [queue-name ext-id])})))
+          {:com.github.ivarref.yoltq/ext-id (pr-str-safe :id [queue-name ext-id])})))
     (do
       (log/error "Did not find registered handler for queue" queue-name)
       (throw (ex-info (str "Did not find registered handler for queue: " queue-name) {:queue queue-name})))))
