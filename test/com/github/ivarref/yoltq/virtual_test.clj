@@ -186,8 +186,9 @@
     (tq/put! :q {:work 123})
     (is (some? (:exception (tq/run-one-report-queue!))))
 
-    (dotimes [_ 20]
-      (tq/run-queue-once! :q :error))
+    (timbre/with-level :fatal
+                       (dotimes [_ 20]
+                         (tq/run-queue-once! :q :error)))
     (is (= 4 @call-count))))
 
 
