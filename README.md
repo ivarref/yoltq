@@ -259,9 +259,16 @@ job to complete before it will be executed:
 
 @(d/transact conn [(yq/put :b 
                            ; Payload:
-                           {:id "b1"}
+                           {:id "b1" :a-ref "a1"}
                            ; Jobs options:
                            {:depends-on [:a "a1"]})])
+
+; depends-on may also be specified as a function of the payload when 
+; adding the consumer:
+(yq/add-consumer! :b 
+                  (fn [payload] ...)
+                  {:depends-on (fn [payload]
+                                 [:a (:a-ref payload)])})
 ```
 
 Here queue job `b1` will not execute before `a1` is `:done`.
