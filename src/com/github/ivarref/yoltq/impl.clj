@@ -67,7 +67,7 @@
                            [?e :com.github.ivarref.yoltq/ext-id ?ext-id]]
                          (d/db conn)
                          (pr-str-safe :depends-on [q ext-id]))
-            (throw (ex-info ":depends-on not found in database" opts))))
+            (throw (ex-info (str ":depends-on not found in database. Queue: " q ", id: " ext-id) opts))))
         (when-let [ext-id (:id opts)]
           {:com.github.ivarref.yoltq/ext-id (pr-str-safe :id [queue-name ext-id])})))
     (do
