@@ -331,3 +331,14 @@
     (yq/add-consumer! :a identity)
     (timbre/with-level :fatal
       (is (thrown? Exception @(d/transact conn [(yq/put :a {:broken #'=})]))))))
+
+
+(deftest payload-verifier
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q identity
+                      {:valid-payload? (fn [{:keys [id]}]
+                                         (some? id))})
+    @(d/transact conn [(yq/put :q {:id "a"})])
+    (timbre/with-level :fatal
+                       (is (thrown? Exception @(d/transact conn [(yq/put :q {})]))))))

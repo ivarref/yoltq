@@ -146,6 +146,8 @@ the payload. It can be added like this:
   ; An optional map of queue opts
   {:allow-cas-failure? true ; Treat [:db.cas ...] failures as success. This is one way for the
                             ; consumer function to ensure idempotence.
+   :valid-payload? (fn [payload] (some? (:id payload))) ; Function that verifies payload. Should return truthy for valid payloads.
+                                                        ; The default function always returns true.
    :max-retries 10})        ; Specify maximum number of times an item will be retried. Default: 100
 ```
 

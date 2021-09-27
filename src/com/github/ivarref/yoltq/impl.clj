@@ -40,6 +40,7 @@
   (if-let [q-config (get-in config [:handlers queue-name])]
     (let [id (u/squuid)
           depends-on (get q-config :depends-on (fn [_] nil))
+          valid-payload? (get q-config :valid-payload? (fn [_] true))
           opts (merge
                  (when-let [deps (depends-on payload)]
                    {:depends-on deps})
@@ -49,6 +50,9 @@
                                     {}
                                     (or capture-bindings []))
                             (pr-str-safe :capture-bindings))]
+      (when-not (valid-payload? payload)
+        (log/error "Payload was not valid. Payload was:" payload)
+        (throw (ex-info (str "Payload was not valid: " payload) {:payload payload})))
       (log/debug "queue item" (str id) "for queue" queue-name "is pending status" u/status-init)
       (merge
         {:com.github.ivarref.yoltq/id         id
