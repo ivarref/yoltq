@@ -63,7 +63,7 @@
          :com.github.ivarref.yoltq/opts       (pr-str-safe :opts opts)
          :com.github.ivarref.yoltq/lock       (u/random-uuid)
          :com.github.ivarref.yoltq/tries      0
-         :com.github.ivarref.yoltq/init-time  (u/now-ns)}
+         :com.github.ivarref.yoltq/init-time  (u/now-ms)}
         (when-let [[q ext-id] (:depends-on opts)]
           (when-not (d/q '[:find ?e .
                            :in $ ?ext-id
@@ -138,8 +138,8 @@
               [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/tries tries (inc tries)]
               [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/status u/status-processing new-status]
               (if (= new-status u/status-done)
-                {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/done-time (u/now-ns)}
-                {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/error-time (u/now-ns)})]
+                {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/done-time (u/now-ms)}
+                {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/error-time (u/now-ms)})]
           start-time (System/nanoTime)
           {:keys [db-after]} @(d/transact conn tx)]
       (when tx-spent-time! (tx-spent-time! (- (System/nanoTime) start-time)))
@@ -171,7 +171,7 @@
           (log/debug "queue item" (str id) "for queue" queue-name "is now processing")
           (let [{:keys [retval exception]}
                 (try
-                  (swap! start-execute-time assoc (Thread/currentThread) [(ext/now-ns) id queue-name])
+                  (swap! start-execute-time assoc (Thread/currentThread) [(ext/now-ms) id queue-name])
                   (let [v (f payload)]
                     {:retval v})
                   (catch Throwable t
@@ -188,7 +188,7 @@
               (when-let [q-item (mark-status-fn! cfg queue-item u/status-done)]
                 (let [{:com.github.ivarref.yoltq/keys [init-time done-time tries]} q-item]
                   (log/info (fmt id queue-name u/status-done tries (- done-time init-time)))
-                  (when collect-spent-time! (collect-spent-time! (- (u/now-ns) init-time)))
+                  (when collect-spent-time! (collect-spent-time! (- (u/now-ms) init-time)))
                   (assoc q-item :retval retval :success? true :allow-cas-failure? true)))
 
               (some? exception)
@@ -198,14 +198,14 @@
                   (log/logp level exception (fmt id queue-name u/status-error tries (- error-time init-time)))
                   (log/logp level exception "error message was:" (str \" (ex-message exception) \") "for queue-item" (str id))
                   (log/logp level exception "ex-data was:" (ex-data exception) "for queue-item" (str id))
-                  (when collect-spent-time! (collect-spent-time! (- (u/now-ns) init-time)))
+                  (when collect-spent-time! (collect-spent-time! (- (u/now-ms) init-time)))
                   (assoc q-item :exception exception)))
 
               :else
               (when-let [q-item (mark-status-fn! cfg queue-item u/status-done)]
                 (let [{:com.github.ivarref.yoltq/keys [init-time done-time tries]} q-item]
                   (log/info (fmt id queue-name u/status-done tries (- done-time init-time)))
-                  (when collect-spent-time! (collect-spent-time! (- (u/now-ns) init-time)))
+                  (when collect-spent-time! (collect-spent-time! (- (u/now-ms) init-time)))
                   (assoc q-item :retval retval :success? true))))))
         (do
           (log/error "no handler for queue" queue-name)

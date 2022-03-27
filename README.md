@@ -333,12 +333,21 @@ easier.
 
 ## Change log
 
-### 2022-03-27 [v0.2.41](https://github.com/ivarref/yoltq/compare/v0.2.39...v0.2.41)
+### 20..-..-.. vHEAD [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...HEAD)
+* Critical bugfix.
+```
+Started using (System/currentTimeMillis) and not (System/nanoTime)
+when storing time in the database. 
+```
+
+* Bump Clojure to `1.11.0`.
+
+### 2022-03-27 v0.2.41 [diff](https://github.com/ivarref/yoltq/compare/v0.2.39...v0.2.41)
 * Added function `healthy?` that returns:
 ```
-    true if no errors
-    false if one or more errors
-    nil if error-poller is yet to be executed.
+  true if no errors
+  false if one or more errors
+  nil if error-poller is yet to be executed.
 ```
 
 * Added default functions for `:on-system-error` and `:on-system-recovery`
@@ -348,22 +357,23 @@ easier.
 * Added function `queue-stats` that returns a nicely "formatted"
   vector of queue stats, for example:
 ```
-(queue-stats)
-=>
-[{:qname :add-message-thread, :status :done, :count 10274}
- {:qname :add-message-thread, :status :init, :count 30}
- {:qname :add-message-thread, :status :processing, :count 1}
- {:qname :send-message, :status :done, :count 21106}
- {:qname :send-message, :status :init, :count 56}]
+  (queue-stats)
+  =>
+  [{:qname :add-message-thread, :status :done, :count 10274}
+   {:qname :add-message-thread, :status :init, :count 30}
+   {:qname :add-message-thread, :status :processing, :count 1}
+   {:qname :send-message, :status :done, :count 21106}
+   {:qname :send-message, :status :init, :count 56}]
 ```
 
-### 2021-09-27 [v0.2.39](https://github.com/ivarref/yoltq/compare/v0.2.37...v0.2.39)
+### 2021-09-27 v0.2.39 [diff](https://github.com/ivarref/yoltq/compare/v0.2.37...v0.2.39)
 Added `:valid-payload?` option for queue consumers.
 
-### 2021-09-27 [v0.2.37](https://github.com/ivarref/yoltq/compare/v0.2.33...v0.2.37) 
+### 2021-09-27 v0.2.37 [diff](https://github.com/ivarref/yoltq/compare/v0.2.33...v0.2.37) 
 Improved error reporting.
 
-### 2021-09-24 v0.2.33: First publicly announced release.
+### 2021-09-24 v0.2.33
+First publicly announced release.
 
 ## License
 

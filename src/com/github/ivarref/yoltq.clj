@@ -19,7 +19,7 @@
 
 (def default-opts
   (-> {; Default number of times a queue job will be retried before giving up
-       ; Can be overridden on a per consumer basis with
+       ; Can be overridden on a per-consumer basis with
        ; (yq/add-consumer! :q (fn [payload] ...) {:max-retries 200})
        :max-retries                   100
 
@@ -34,7 +34,7 @@
        :hung-backoff-time             (Duration/ofMinutes 30)
 
        ; Most queue jobs in init state will be consumed by the tx-report-queue listener.
-       ; However in the case where a init job was added right before the application
+       ; However, in the case where an init job was added right before the application
        ; was shut down and did not have time to be processed by the tx-report-queue listener,
        ; it will be consumer by the init poller. This init poller backs off by
        ; :init-backoff-time to avoid unnecessary compare-and-swap lock failures that could
@@ -66,7 +66,7 @@
        ; How often should the system invoke
        :system-error-callback-backoff (Duration/ofHours 1)}
 
-      u/duration->nanos))
+      u/duration->millis))
 
 
 (defn init! [{:keys [conn] :as cfg}]
@@ -83,7 +83,7 @@
                                            default-opts
                                            (if *test-mode* old-conf (select-keys old-conf [:handlers]))
                                            cfg)
-                               u/duration->nanos)))]
+                               u/duration->millis)))]
       new-cfg)))
 
 

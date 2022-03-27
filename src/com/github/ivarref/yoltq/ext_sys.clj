@@ -1,17 +1,18 @@
 (ns com.github.ivarref.yoltq.ext-sys
   (:require [datomic.api :as d])
+  (:refer-clojure :exclude [random-uuid])
   (:import (java.util UUID)))
 
 
-(def ^:dynamic *now-ns-atom* nil)
+(def ^:dynamic *now-ms-atom* nil)
 (def ^:dynamic *squuid-atom* nil)
 (def ^:dynamic *random-atom* nil)
 
 
-(defn now-ns []
-  (if *now-ns-atom*
-    @*now-ns-atom*
-    (System/nanoTime)))
+(defn now-ms []
+  (if *now-ms-atom*
+    @*now-ms-atom*
+    (System/currentTimeMillis)))
 
 
 (defn squuid []

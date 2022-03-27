@@ -25,17 +25,16 @@
       (if-not (contains? old q)
         (try
           (log/debug "polling queue" queue-name "for status" status)
-          (let [start-time (u/now-ns)
+          (let [start-time (u/now-ms)
                 last-res (loop [prev-res nil]
                            (when @running?
                              (let [res (poll-once! cfg queue-name status)]
+                               (log/debug "poll-once! returned" res)
                                (if (and res (:success? res))
                                  (recur res)
                                  prev-res))))]
-            (let [spent-ns (- (u/now-ns) start-time)]
-              (log/trace "done polling queue" q "in"
-                         (format "%.1f" (double (/ spent-ns 1e6)))
-                         "ms"))
+            (let [spent-ms (- (u/now-ms) start-time)]
+              (log/trace "done polling queue" q "in" spent-ms "ms"))
             last-res)
           (finally
             (swap! running-queues disj q)))
@@ -44,6 +43,14 @@
       (log/error t "poll-queue! crashed:" (ex-message t)))
     (finally)))
 
+(comment
+  (def cfg @com.github.ivarref.yoltq/*config*))
+
+(comment
+  (poll-queue!
+    (atom true)
+    @com.github.ivarref.yoltq/*config*
+    [:add-message-thread :init]))
 
 (defn poll-all-queues! [running? config-atom pool]
   (try

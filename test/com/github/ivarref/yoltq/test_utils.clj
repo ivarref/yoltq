@@ -8,7 +8,8 @@
             [com.github.ivarref.yoltq.impl :as i]
             [clojure.edn :as edn]
             [com.github.ivarref.yoltq.ext-sys :as ext])
-  (:import (java.util UUID)))
+  (:import (java.util UUID)
+           (java.time Duration)))
 
 
 (logconfig/init-logging!
@@ -39,10 +40,10 @@
 
 
 (defn advance! [tp]
-  (assert (some? ext/*now-ns-atom*) "Expected to be running in test-mode!")
-  (swap! ext/*now-ns-atom* + (if (number? tp)
+  (assert (some? ext/*now-ms-atom*) "Expected to be running in test-mode!")
+  (swap! ext/*now-ms-atom* + (if (number? tp)
                                tp
-                               (.toNanos tp))))
+                               (.toMillis ^Duration tp))))
 
 
 (defn done-count []

@@ -22,7 +22,7 @@
                                   state       :recovery}}
                           {:keys [system-error-min-count system-error-callback-backoff]
                            :or   {system-error-min-count 3}}
-                          now-ns
+                          now-ms
                           error-count]
   (let [new-errors (->> (conj errors error-count)
                         (take-last system-error-min-count)
@@ -50,14 +50,14 @@
           (when (and (= old-state :recovery)
                      (= new-state :error))
             {:run-callback :error
-             :last-notify  now-ns})
+             :last-notify  now-ms})
 
           (when (and (= new-state :error)
                      (= old-state :error)
-                     (> now-ns
+                     (> now-ms
                         (+ last-notify system-error-callback-backoff)))
             {:run-callback :error
-             :last-notify  now-ns})
+             :last-notify  now-ms})
 
           (when (and (= new-state :recovery)
                      (= old-state :error))
@@ -88,7 +88,7 @@
         (log/debug "poll-errors found" error-count "errors in system")
         (reset! healthy? false))
       (reset! healthy? true))
-    (let [{:keys [run-callback] :as new-state} (swap! system-error handle-error-count config (ext/now-ns) error-count)]
+    (let [{:keys [run-callback] :as new-state} (swap! system-error handle-error-count config (ext/now-ms) error-count)]
       (when run-callback
         (cond (= run-callback :error)
               (on-system-error)

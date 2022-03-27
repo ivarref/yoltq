@@ -10,3 +10,4 @@ tree.txt
 *.pom.asc
 *.pom
 temp/
+.clj-kondo/

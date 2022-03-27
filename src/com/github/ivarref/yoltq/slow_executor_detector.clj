@@ -7,7 +7,7 @@
 (defn- do-show-slow-threads [{:keys [start-execute-time
                                      max-execute-time]}]
   (doseq [[^Thread thread [start-time queue-id queue-name]] @start-execute-time]
-    (when (> (ext/now-ns) (+ start-time max-execute-time))
+    (when (> (ext/now-ms) (+ start-time max-execute-time))
       (log/error "thread" (.getName thread) "spent too much time on"
                  "queue item" (str queue-id)
                  "for queue" queue-name

@@ -47,7 +47,7 @@
      (with-bindings {#'yq/*config*       config#
                      #'yq/*running?*     (atom false)
                      #'yq/*test-mode*    true
-                     #'ext/*now-ns-atom* (atom 0)
+                     #'ext/*now-ms-atom* (atom 0)
                      #'ext/*random-atom* (atom 0)
                      #'ext/*squuid-atom* (atom 0)}
        (try

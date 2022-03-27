@@ -3,6 +3,7 @@
             [clojure.edn :as edn]
             [com.github.ivarref.yoltq.ext-sys :as ext]
             [clojure.tools.logging :as log])
+  (:refer-clojure :exclude [random-uuid])
   (:import (datomic Connection)
            (java.time Duration)))
 
@@ -13,10 +14,10 @@
 (def status-error :error)
 
 
-(defn duration->nanos [m]
+(defn duration->millis [m]
   (reduce-kv (fn [o k v]
                (if (instance? Duration v)
-                 (assoc o k (.toNanos v))
+                 (assoc o k (.toMillis v))
                  (assoc o k v)))
              {}
              m))
@@ -30,8 +31,8 @@
   (ext/random-uuid))
 
 
-(defn now-ns []
-  (ext/now-ns))
+(defn now-ms []
+  (ext/now-ms))
 
 
 (defn root-cause [e]
@@ -75,7 +76,7 @@
      :bindings   (get (get-queue-item db id) :com.github.ivarref.yoltq/bindings {})
      :tx         [[:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/lock old-lock new-lock]
                   [:db/cas [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/status old-status status-processing]
-                  {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/processing-time (now-ns)}]}))
+                  {:db/id [:com.github.ivarref.yoltq/id id] :com.github.ivarref.yoltq/processing-time (now-ms)}]}))
 
 
 (defn get-init [{:keys [conn db init-backoff-time] :as cfg} queue-name]
@@ -94,11 +95,11 @@
                              [?e :com.github.ivarref.yoltq/lock ?lock]]
                            db
                            queue-name
-                           (- (now-ns) init-backoff-time))
+                           (- (now-ms) init-backoff-time))
                       (not-empty))]
       (let [[id old-lock] (rand-nth (into [] ids))]
         (prepare-processing db id queue-name old-lock :init))
-      (log/trace "no new-items in :init status for queue" queue-name))))
+      (log/debug "no new-items in :init status for queue" queue-name))))
 
 
 (defn get-error [{:keys [conn db error-backoff-time max-retries] :as cfg} queue-name]
@@ -120,7 +121,7 @@
                                [?e :com.github.ivarref.yoltq/lock ?lock]]
                              db
                              queue-name
-                             (- (now-ns) error-backoff-time)
+                             (- (now-ms) error-backoff-time)
                              (inc max-retries))
                         (not-empty))]
       (let [[id old-lock] (rand-nth (into [] ids))]
@@ -131,7 +132,7 @@
   (assert (instance? Connection conn) (str "Expected conn to be of type datomic.Connection. Was: "
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
-  (let [now (or now (now-ns))
+  (let [now (or now (now-ms))
         max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)
         db (or db (d/db conn))]
     (when-let [ids (->> (d/q '[:find ?id ?lock ?tries
