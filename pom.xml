@@ -4,13 +4,13 @@
   <packaging>jar</packaging>
   <groupId>com.github.ivarref</groupId>
   <artifactId>yoltq</artifactId>
-  <version>0.2.45</version>
+  <version>0.2.46</version>
   <name>yoltq</name>
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.10.3</version>
+      <version>1.11.0</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -30,7 +30,7 @@
   <scm>
     <connection>scm:git:git://github.com/ivarref/yoltq.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/ivarref/yoltq.git</developerConnection>
-    <tag>v0.2.45</tag>
+    <tag>v0.2.46</tag>
     <url>https://github.com/ivarref/yoltq</url>
   </scm>
 </project>
