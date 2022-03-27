@@ -331,6 +331,34 @@ These dynamic bindings will be in place when yoltq logs errors, warnings
 etc. about failing consumer functions, possibly making troubleshooting
 easier.
 
+## Change log
+
+### 2022-03-27 v0.2.41
+```
+  Added function `healthy?` that returns:
+    true if no errors
+    false if one or more errors
+    nil if error-poller is yet to be executed.
+  
+  Added default functions for `:on-system-error` and `:on-system-recovery`
+  that simply logs that the system is in error (ERROR level) or has 
+  recovered (INFO level). 
+  
+  Added function `queue-stats` that returns a nicely "formatted"
+  vector of queue stats, for example:
+  (queue-stats)
+  =>
+    [{:qname :add-message-thread, :status :done, :count 10274}
+     {:qname :add-message-thread, :status :init, :count 30}
+     {:qname :add-message-thread, :status :processing, :count 1}
+     {:qname :send-message, :status :done, :count 21106}
+     {:qname :send-message, :status :init, :count 56}]
+```
+
+### 2021-09-27 v0.2.39: ?
+### 2021-09-27 v0.2.37: ?
+
+### 2021-09-24 v0.2.33: First publicly announced release.
 
 ## License
 

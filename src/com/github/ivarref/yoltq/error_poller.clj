@@ -66,9 +66,13 @@
 
 (defn do-poll-errors [{:keys [conn system-error
                               on-system-error
-                              on-system-recovery]
-                       :or   {on-system-error    (fn [] nil)
-                              on-system-recovery (fn [] nil)}
+                              on-system-recovery
+                              healthy?]
+                       :or   {on-system-error    (fn []
+                                                   (log/error "There are yoltq queues which have errors")
+                                                   nil)
+                              on-system-recovery (fn []
+                                                   (log/info "Yoltq recovered"))}
                        :as   config}]
   (assert (some? conn) "expected :conn to be present")
   (assert (some? system-error) "expected :system-error to be present")
@@ -79,8 +83,11 @@
                              (d/db conn)
                              u/status-error)
                         0)]
-    (when (pos-int? error-count)
-      (log/debug "poll-errors found" error-count "errors in system"))
+    (if (pos-int? error-count)
+      (do
+        (log/debug "poll-errors found" error-count "errors in system")
+        (reset! healthy? false))
+      (reset! healthy? true))
     (let [{:keys [run-callback] :as new-state} (swap! system-error handle-error-count config (ext/now-ns) error-count)]
       (when run-callback
         (cond (= run-callback :error)
@@ -100,7 +107,7 @@
     (when @running?
       (do-poll-errors @config-atom))
     (catch Throwable t
-      (log/error t "unexpected error in poll-erros:" (ex-message t))
+      (log/error t "unexpected error in poll-errors:" (ex-message t))
       nil)))
 
 

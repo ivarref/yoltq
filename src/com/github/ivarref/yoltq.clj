@@ -17,7 +17,6 @@
 (defonce ^:dynamic *running?* (atom false))
 (defonce ^:dynamic *test-mode* false)
 
-
 (def default-opts
   (-> {; Default number of times a queue job will be retried before giving up
        ; Can be overridden on a per consumer basis with
@@ -79,7 +78,8 @@
                            (-> (merge-with (fn [a b] (or b a))
                                            {:running-queues     (atom #{})
                                             :start-execute-time (atom {})
-                                            :system-error       (atom {})}
+                                            :system-error       (atom {})
+                                            :healthy?           (atom nil)}
                                            default-opts
                                            (if *test-mode* old-conf (select-keys old-conf [:handlers]))
                                            cfg)
@@ -147,6 +147,32 @@
               (log/debug "stopped!")
               (reset! threadpool nil))))))
 
+
+(defn healthy? []
+  (some->> @*config*
+           :healthy?
+           (deref)))
+
+(defn queue-stats []
+  (let [{:keys [conn]} @*config*
+        db (d/db conn)]
+    (->> (d/q '[:find ?e ?qname ?status
+                :in $
+                :where
+                [?e :com.github.ivarref.yoltq/queue-name ?qname]
+                [?e :com.github.ivarref.yoltq/status ?status]]
+              db)
+         (mapv (partial zipmap [:e :qname :status]))
+         (mapv #(select-keys % [:qname :status]))
+         (mapv (fn [qitem] {qitem 1}))
+         (reduce (partial merge-with +) {})
+         (mapv (fn [[{:keys [qname status]} v]]
+                 (array-map
+                   :qname qname
+                   :status status
+                   :count v)))
+         (sort-by (juxt :qname :status))
+         (vec))))
 
 (comment
   (do

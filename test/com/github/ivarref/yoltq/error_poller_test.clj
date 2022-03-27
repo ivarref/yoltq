@@ -1,5 +1,5 @@
 (ns com.github.ivarref.yoltq.error-poller-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [com.github.ivarref.yoltq.error-poller :as ep]
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.log-init :as logconfig]
