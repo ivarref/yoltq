@@ -111,7 +111,7 @@
 (defn- do-start! []
   (let [{:keys [poll-delay pool-size system-error-poll-delay auto-migrate?] :as cfg} @*config*]
     (when auto-migrate?
-      (migrate/migrate! cfg))
+      (future (migrate/migrate! cfg)))
     (reset! threadpool (Executors/newScheduledThreadPool (+ 2 pool-size)))
     (let [pool @threadpool
           queue-listener-ready (promise)]

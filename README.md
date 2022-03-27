@@ -333,6 +333,10 @@ easier.
 
 ## Change log
 
+### 2022-03-27 v0.2.48 [diff](https://github.com/ivarref/yoltq/compare/v0.2.46...v0.2.48)
+* Auto migration is done in the background.
+* Only poll for current version of jobs, thus no races for auto migration.
+
 ### 2022-03-27 v0.2.46 [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...v0.2.46)
 * Critical bugfix that in some cases can lead to stalled jobs.
 ```
