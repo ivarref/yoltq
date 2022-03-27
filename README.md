@@ -333,8 +333,8 @@ easier.
 
 ## Change log
 
-### 20..-..-.. vHEAD [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...HEAD)
-* Critical bugfix.
+### 2022-03-27 v0.2.46 [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...v0.2.46)
+* Critical bugfix that in some cases can lead to stalled jobs.
 ```
 Started using (System/currentTimeMillis) and not (System/nanoTime)
 when storing time in the database. 
