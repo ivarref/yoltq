@@ -20,7 +20,8 @@
    #:db{:ident :com.github.ivarref.yoltq/init-time, :cardinality :db.cardinality/one, :valueType :db.type/long}
    #:db{:ident :com.github.ivarref.yoltq/processing-time, :cardinality :db.cardinality/one, :valueType :db.type/long}
    #:db{:ident :com.github.ivarref.yoltq/done-time, :cardinality :db.cardinality/one, :valueType :db.type/long}
-   #:db{:ident :com.github.ivarref.yoltq/error-time, :cardinality :db.cardinality/one, :valueType :db.type/long}])
+   #:db{:ident :com.github.ivarref.yoltq/error-time, :cardinality :db.cardinality/one, :valueType :db.type/long}
+   #:db{:ident :com.github.ivarref.yoltq/version, :cardinality :db.cardinality/one, :valueType :db.type/string, :index true}])
 
 
 (defn pr-str-safe [what x]
@@ -63,7 +64,8 @@
          :com.github.ivarref.yoltq/opts       (pr-str-safe :opts opts)
          :com.github.ivarref.yoltq/lock       (u/random-uuid)
          :com.github.ivarref.yoltq/tries      0
-         :com.github.ivarref.yoltq/init-time  (u/now-ms)}
+         :com.github.ivarref.yoltq/init-time  (u/now-ms)
+         :com.github.ivarref.yoltq/version    "2"}
         (when-let [[q ext-id] (:depends-on opts)]
           (when-not (d/q '[:find ?e .
                            :in $ ?ext-id

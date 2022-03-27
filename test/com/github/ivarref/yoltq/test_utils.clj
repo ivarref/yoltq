@@ -7,7 +7,8 @@
             [clojure.string :as str]
             [com.github.ivarref.yoltq.impl :as i]
             [clojure.edn :as edn]
-            [com.github.ivarref.yoltq.ext-sys :as ext])
+            [com.github.ivarref.yoltq.ext-sys :as ext]
+            [clojure.pprint :as pp])
   (:import (java.util UUID)
            (java.time Duration)))
 
@@ -53,6 +54,10 @@
          [?e :com.github.ivarref.yoltq/status :done]]
        (d/db (:conn @yq/*config*))))
 
+
+(defn pp [x]
+  (pp/pprint x)
+  x)
 
 (defn get-init [& args]
   (apply u/get-init @yq/*config* args))

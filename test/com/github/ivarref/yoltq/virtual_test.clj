@@ -1,6 +1,6 @@
 (ns com.github.ivarref.yoltq.virtual-test
   (:require [datomic-schema.core]
-            [clojure.test :refer :all]
+            [clojure.test :refer [use-fixtures deftest is] :refer-macros [thrown?]]
             [com.github.ivarref.yoltq.test-queue :as tq]
             [com.github.ivarref.yoltq.test-utils :as u]
             [datomic.api :as d]
@@ -8,7 +8,8 @@
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq.impl :as i]
             [com.github.ivarref.yoltq :as yq]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre]
+            [com.github.ivarref.yoltq.migrate :as migrate]))
 
 
 (use-fixtures :each tq/call-with-virtual-queue!)
@@ -21,6 +22,13 @@
     @(d/transact conn [(yq/put :q {:work 123})])
     (is (= {:work 123} (tq/consume! :q)))))
 
+(deftest happy-case-no-migration-for-new-entities
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q identity)
+    @(d/transact conn [(yq/put :q {:work 123})])
+    (is (= {:work 123} (tq/consume! :q)))
+    (is (= [] (migrate/migrate! @yq/*config*)))))
 
 (deftest happy-case-tx-report-q
   (let [conn (u/empty-conn)]

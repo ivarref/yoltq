@@ -6,6 +6,7 @@
             [com.github.ivarref.yoltq.poller :as poller]
             [com.github.ivarref.yoltq.error-poller :as errpoller]
             [com.github.ivarref.yoltq.slow-executor-detector :as slow-executor]
+            [com.github.ivarref.yoltq.migrate :as migrate]
             [com.github.ivarref.yoltq.utils :as u])
   (:import (datomic Connection)
            (java.util.concurrent Executors TimeUnit ExecutorService)
@@ -64,7 +65,11 @@
        :system-error-poll-delay       (Duration/ofMinutes 1)
 
        ; How often should the system invoke
-       :system-error-callback-backoff (Duration/ofHours 1)}
+       :system-error-callback-backoff (Duration/ofHours 1)
+
+       ; Should old, possibly stalled jobs be automatically be migrated
+       ; as part of `start!`?
+       :auto-migrate? true}
 
       u/duration->millis))
 
@@ -104,7 +109,9 @@
 
 
 (defn- do-start! []
-  (let [{:keys [poll-delay pool-size system-error-poll-delay]} @*config*]
+  (let [{:keys [poll-delay pool-size system-error-poll-delay auto-migrate?] :as cfg} @*config*]
+    (when auto-migrate?
+      (migrate/migrate! cfg))
     (reset! threadpool (Executors/newScheduledThreadPool (+ 2 pool-size)))
     (let [pool @threadpool
           queue-listener-ready (promise)]
