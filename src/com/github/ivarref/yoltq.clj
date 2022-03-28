@@ -116,8 +116,8 @@
     (let [pool @threadpool
           queue-listener-ready (promise)]
       (reset! *running?* true)
-      (.scheduleAtFixedRate pool (fn [] (poller/poll-all-queues! *running?* *config* pool)) 0 poll-delay TimeUnit/NANOSECONDS)
-      (.scheduleAtFixedRate pool (fn [] (errpoller/poll-errors *running?* *config*)) 0 system-error-poll-delay TimeUnit/NANOSECONDS)
+      (.scheduleAtFixedRate pool (fn [] (poller/poll-all-queues! *running?* *config* pool)) 0 poll-delay TimeUnit/MILLISECONDS)
+      (.scheduleAtFixedRate pool (fn [] (errpoller/poll-errors *running?* *config*)) 0 system-error-poll-delay TimeUnit/MILLISECONDS)
       (.execute pool (fn [] (rq/report-queue-listener *running?* queue-listener-ready pool *config*)))
       (.execute pool (fn [] (slow-executor/show-slow-threads *running?* *config*)))
       @queue-listener-ready)))

@@ -333,6 +333,9 @@ easier.
 
 ## Change log
 
+### 2022-03-28 v0.2.?? [diff](https://github.com/ivarref/yoltq/compare/v0.2.51...v0.2.??)
+Fixed: Schedules should now be using milliseconds and not nanoseconds.
+
 ### 2022-03-28 v0.2.51 [diff](https://github.com/ivarref/yoltq/compare/v0.2.48...v0.2.51)
 * Don't OOM on migrating large amounts of data. 
 * Respect `:auto-migrate? false`.
