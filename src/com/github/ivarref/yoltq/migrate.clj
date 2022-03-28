@@ -47,7 +47,7 @@
       (let [tx (to->v2-ent cfg now-ms id)]
         @(d/transact conn tx)
         (if loop?
-          (recur (conj tx-vec tx))
+          (recur (vec (take 10 (conj tx-vec tx))))
           tx))
       (do
         (log/info "No items left to migrate")

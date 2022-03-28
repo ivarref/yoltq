@@ -80,7 +80,7 @@
     @(d/transact conn i/schema)
     (let [new-cfg (swap! *config*
                          (fn [old-conf]
-                           (-> (merge-with (fn [a b] (or b a))
+                           (-> (merge-with (fn [_ b] b)
                                            {:running-queues     (atom #{})
                                             :start-execute-time (atom {})
                                             :system-error       (atom {})
