@@ -333,6 +333,10 @@ easier.
 
 ## Change log
 
+### 2022-03-28 v0.2.?? [diff](https://github.com/ivarref/yoltq/compare/v0.2.48...v0.2.??)
+* Don't OOM on migrating large amounts of data. 
+* Respect `:auto-migrate? false`.
+
 ### 2022-03-27 v0.2.48 [diff](https://github.com/ivarref/yoltq/compare/v0.2.46...v0.2.48)
 * Auto migration is done in the background.
 * Only poll for current version of jobs, thus no races for auto migration.
