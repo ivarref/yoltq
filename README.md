@@ -333,7 +333,11 @@ easier.
 
 ## Change log
 
-### 2022-03-28 v0.2.?? [diff](https://github.com/ivarref/yoltq/compare/v0.2.51...v0.2.??)
+### 2022-03-29 v0.2.55 [diff](https://github.com/ivarref/yoltq/compare/v0.2.54...v0.2.55)
+Added: `unhealthy?` function which returns `true` if there are queues in error,
+or `false` otherwise.
+
+### 2022-03-28 v0.2.54 [diff](https://github.com/ivarref/yoltq/compare/v0.2.51...v0.2.54)
 Fixed: Schedules should now be using milliseconds and not nanoseconds.
 
 ### 2022-03-28 v0.2.51 [diff](https://github.com/ivarref/yoltq/compare/v0.2.48...v0.2.51)

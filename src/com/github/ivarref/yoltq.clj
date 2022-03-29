@@ -160,6 +160,11 @@
            :healthy?
            (deref)))
 
+(defn unhealthy?
+  "Returns `true` if there are queues in error, otherwise `false`."
+  []
+  (false? (healthy?)))
+
 (defn queue-stats []
   (let [{:keys [conn]} @*config*
         db (d/db conn)]

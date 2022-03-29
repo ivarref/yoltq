@@ -56,3 +56,6 @@
 
 (defn migrate! [cfg]
   (to->v2 cfg))
+
+(comment
+  (migrate! @com.github.ivarref.yoltq/*config*))
