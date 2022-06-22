@@ -1,12 +1,12 @@
-{:deps      {org.clojure/tools.logging {:mvn/version "1.1.0"}
-             org.clojure/clojure       {:mvn/version "1.11.0"}}
+{:deps      {org.clojure/tools.logging {:mvn/version "1.2.4"}
+             org.clojure/clojure       {:mvn/version "1.11.1"}}
 
  :paths     ["src"]
 
- :aliases   {:datomic {:extra-deps  {com.datomic/datomic-pro {:mvn/version "1.0.6316" :exclusions [org.slf4j/slf4j-nop]}}}
+ :aliases   {:datomic {:extra-deps {com.datomic/datomic-pro {:mvn/version "1.0.6316" :exclusions [org.slf4j/slf4j-nop]}}}
              :test    {:extra-paths ["test"]
                        :extra-deps  {ivarref/datomic-schema                  {:mvn/version "0.2.0"}
-                                     com.taoensso/timbre                     {:mvn/version "5.1.2"}
+                                     com.taoensso/timbre                     {:mvn/version "5.2.1"}
                                      com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
                                      clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
                                      com.datomic/datomic-pro                 {:mvn/version "1.0.6316" :exclusions [org.slf4j/slf4j-nop]}

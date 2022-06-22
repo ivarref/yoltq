@@ -1,15 +1,15 @@
 (ns com.github.ivarref.yoltq.virtual-test
-  (:require [datomic-schema.core]
-            [clojure.test :refer [use-fixtures deftest is] :refer-macros [thrown?]]
+  (:require [clojure.test :refer [deftest is use-fixtures] :refer-macros [thrown?]]
+            [clojure.tools.logging :as log]
+            [com.github.ivarref.yoltq :as yq]
+            [com.github.ivarref.yoltq.impl :as i]
+            [com.github.ivarref.yoltq.migrate :as migrate]
             [com.github.ivarref.yoltq.test-queue :as tq]
             [com.github.ivarref.yoltq.test-utils :as u]
-            [datomic.api :as d]
             [com.github.ivarref.yoltq.utils :as uu]
-            [clojure.tools.logging :as log]
-            [com.github.ivarref.yoltq.impl :as i]
-            [com.github.ivarref.yoltq :as yq]
-            [taoensso.timbre :as timbre]
-            [com.github.ivarref.yoltq.migrate :as migrate]))
+            [datomic-schema.core]
+            [datomic.api :as d]
+            [taoensso.timbre :as timbre]))
 
 
 (use-fixtures :each tq/call-with-virtual-queue!)
@@ -350,3 +350,20 @@
     @(d/transact conn [(yq/put :q {:id "a"})])
     (timbre/with-level :fatal
                        (is (thrown? Exception @(d/transact conn [(yq/put :q {})]))))))
+
+
+(defn my-consumer
+  {:yoltq/queue-id :some-q}
+  [state payload]
+  (swap! state conj payload))
+
+(deftest queue-id-can-be-var
+  (let [conn (u/empty-conn)
+        received (atom #{})]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! #'my-consumer (partial my-consumer received))
+    @(d/transact conn [(yq/put #'my-consumer {:id "a"})])
+    (tq/consume! :some-q)
+    (is (= #{{:id "a"}} @received))
+    #_(timbre/with-level :fatal
+                         (is (thrown? Exception @(d/transact conn [(yq/put :q {})]))))))

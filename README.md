@@ -333,22 +333,41 @@ easier.
 
 ## Change log
 
-### 2022-03-29 v0.2.55 [diff](https://github.com/ivarref/yoltq/compare/v0.2.54...v0.2.55)
+#### 2022-06-22 v0.2.56 [diff](https://github.com/ivarref/yoltq/compare/v0.2.55...v0.2.56)
+Added support for `:yoltq/queue-id` metadata on functions. I.e. it's possible to write
+the following:
+```clojure
+(defn my-consumer
+  {:yoltq/queue-id :some-queue}
+  [payload]
+  :work-work-work)
+
+(yq/add-consumer! #'my-consumer ; <-- will resolve to :some-queue 
+                  my-consumer)
+
+@(d/transact conn [(yq/put #'my-consumer ; <-- will resolve to :some-queue
+                           {:id "a"})])
+```
+
+The idea here is that it is simpler to jump to var definitions than going via keywords,
+which essentially refers to a var/function anyway. 
+
+#### 2022-03-29 v0.2.55 [diff](https://github.com/ivarref/yoltq/compare/v0.2.54...v0.2.55)
 Added: `unhealthy?` function which returns `true` if there are queues in error,
 or `false` otherwise.
 
-### 2022-03-28 v0.2.54 [diff](https://github.com/ivarref/yoltq/compare/v0.2.51...v0.2.54)
+#### 2022-03-28 v0.2.54 [diff](https://github.com/ivarref/yoltq/compare/v0.2.51...v0.2.54)
 Fixed: Schedules should now be using milliseconds and not nanoseconds.
 
-### 2022-03-28 v0.2.51 [diff](https://github.com/ivarref/yoltq/compare/v0.2.48...v0.2.51)
+#### 2022-03-28 v0.2.51 [diff](https://github.com/ivarref/yoltq/compare/v0.2.48...v0.2.51)
 * Don't OOM on migrating large amounts of data. 
 * Respect `:auto-migrate? false`.
 
-### 2022-03-27 v0.2.48 [diff](https://github.com/ivarref/yoltq/compare/v0.2.46...v0.2.48)
+#### 2022-03-27 v0.2.48 [diff](https://github.com/ivarref/yoltq/compare/v0.2.46...v0.2.48)
 * Auto migration is done in the background.
 * Only poll for current version of jobs, thus no races for auto migration.
 
-### 2022-03-27 v0.2.46 [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...v0.2.46)
+#### 2022-03-27 v0.2.46 [diff](https://github.com/ivarref/yoltq/compare/v0.2.41...v0.2.46)
 * Critical bugfix that in some cases can lead to stalled jobs.
 ```
 Started using (System/currentTimeMillis) and not (System/nanoTime)
@@ -357,7 +376,7 @@ when storing time in the database.
 
 * Bump Clojure to `1.11.0`.
 
-### 2022-03-27 v0.2.41 [diff](https://github.com/ivarref/yoltq/compare/v0.2.39...v0.2.41)
+#### 2022-03-27 v0.2.41 [diff](https://github.com/ivarref/yoltq/compare/v0.2.39...v0.2.41)
 * Added function `healthy?` that returns:
 ```
   true if no errors
@@ -381,13 +400,13 @@ when storing time in the database.
    {:qname :send-message, :status :init, :count 56}]
 ```
 
-### 2021-09-27 v0.2.39 [diff](https://github.com/ivarref/yoltq/compare/v0.2.37...v0.2.39)
+#### 2021-09-27 v0.2.39 [diff](https://github.com/ivarref/yoltq/compare/v0.2.37...v0.2.39)
 Added `:valid-payload?` option for queue consumers.
 
-### 2021-09-27 v0.2.37 [diff](https://github.com/ivarref/yoltq/compare/v0.2.33...v0.2.37) 
+#### 2021-09-27 v0.2.37 [diff](https://github.com/ivarref/yoltq/compare/v0.2.33...v0.2.37) 
 Improved error reporting.
 
-### 2021-09-24 v0.2.33
+#### 2021-09-24 v0.2.33
 First publicly announced release.
 
 ## License

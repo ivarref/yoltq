@@ -23,9 +23,11 @@ sed -i "s/HEAD/v$VERSION/g" ./README.md
 git add pom.xml README.md
 git commit -m "Release $VERSION"
 git reset --soft HEAD~2
-git commit -m"Release $VERSION\n$MSG"
+git commit -m"Release $VERSION
+$MSG"
 
-git tag -a v"$VERSION" -m "Release v$VERSION\n$MSG"
+git tag -a v"$VERSION" -m "Release v$VERSION
+$MSG"
 git push --follow-tags --force
 
 clojure -X:deploy
