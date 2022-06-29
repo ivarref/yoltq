@@ -333,6 +333,15 @@ easier.
 
 ## Change log
 
+#### 2022-06-29 v0.2.57 [diff](https://github.com/ivarref/yoltq/compare/v0.2.56...v0.2.57)
+Added `(get-errors qname)` and `(retry-one-error! qname)`.
+
+Improved:
+`unhealthy?` will return `false` for the first 10 minutes of the application lifetime.
+This was done in order to push new code while a queue was in error in an earlier
+version of the code. In this way rolling upgrades are possible regardless if there
+are queue errors.
+
 #### 2022-06-22 v0.2.56 [diff](https://github.com/ivarref/yoltq/compare/v0.2.55...v0.2.56)
 Added support for `:yoltq/queue-id` metadata on functions. I.e. it's possible to write
 the following:

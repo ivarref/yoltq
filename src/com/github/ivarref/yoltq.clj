@@ -10,7 +10,8 @@
             [datomic.api :as d])
   (:import (datomic Connection)
            (java.time Duration)
-           (java.util.concurrent ExecutorService Executors TimeUnit)))
+           (java.util.concurrent ExecutorService Executors TimeUnit)
+           (java.lang.management ManagementFactory)))
 
 
 (defonce ^:dynamic *config* (atom nil))
@@ -168,12 +169,14 @@
 
 
 (defn healthy? []
-  (some->> @*config*
-           :healthy?
-           (deref)))
+  (or
+    (< (.toMinutes (Duration/ofMillis (.getUptime (ManagementFactory/getRuntimeMXBean)))) 10)
+    (some->> @*config*
+             :healthy?
+             (deref))))
 
 (defn unhealthy?
-  "Returns `true` if there are queues in error, otherwise `false`."
+  "Returns `true` if there are queues in error and application has been up for over 10 minutes, otherwise `false`."
   []
   (false? (healthy?)))
 
@@ -197,6 +200,26 @@
                    :count v)))
          (sort-by (juxt :qname :status))
          (vec))))
+
+(defn get-errors [qname]
+  (let [{:keys [conn]} @*config*
+        db (d/db conn)]
+    (->> (d/q '[:find [?id ...]
+                :in $ ?qname ?status
+                :where
+                [?e :com.github.ivarref.yoltq/queue-name ?qname]
+                [?e :com.github.ivarref.yoltq/status ?status]
+                [?e :com.github.ivarref.yoltq/id ?id]]
+              db
+              qname
+              :error)
+         (mapv (partial u/get-queue-item db)))))
+
+(defn retry-one-error! [qname]
+  (let [{:keys [handlers] :as cfg} @*config*
+        _ (assert (contains? handlers qname) "Queue not found")
+        cfg (assoc-in cfg [:handlers qname :max-retries] Integer/MAX_VALUE)]
+    (poller/poll-once! cfg qname :error)))
 
 (comment
   (do
