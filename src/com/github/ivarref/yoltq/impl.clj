@@ -23,11 +23,19 @@
    #:db{:ident :com.github.ivarref.yoltq/error-time, :cardinality :db.cardinality/one, :valueType :db.type/long}
    #:db{:ident :com.github.ivarref.yoltq/version, :cardinality :db.cardinality/one, :valueType :db.type/string, :index true}])
 
+(defn pr-str-inner [x]
+  (binding [*print-dup* false
+            *print-meta* false
+            *print-readably* true
+            *print-length* nil
+            *print-level* nil
+            *print-namespace-maps* false]
+    (pr-str x)))
 
 (defn pr-str-safe [what x]
   (try
-    (if (= x (edn/read-string (pr-str x)))
-      (pr-str x)
+    (if (= x (edn/read-string (pr-str-inner x)))
+      (pr-str-inner x)
       (throw (ex-info (str "Could not read-string " what) {:input x})))
     (catch Exception e
       (log/error "could not read-string" what ":" (ex-message e))

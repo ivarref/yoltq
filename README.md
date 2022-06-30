@@ -211,7 +211,7 @@ is shut down abruptly during processing of queue jobs.
 ### Giving up
 
 A queue job will remain in status `:error` once `:max-retries` (default: 100) have been reached.
-Ideally this will not happen.
+Ideally this will not happen. ¯\\\_(ツ)\_/¯
 
 
 ### All configuration options
@@ -285,6 +285,22 @@ Other than this there is no attempt at ordering the execution of queue jobs.
 In fact the opposite is done in the poller to guard against the case that a single failing queue job
 could effectively take down the entire retry polling job.
 
+## Retrying jobs in the REPL
+
+```clojure
+(require '[com.github.ivarref.yoltq :as yq])
+
+; List jobs that are in state error:
+(yq/get-errors :q)
+
+; This will retry a single job that is in error, regardless 
+; of how many times it has been retried earlier.
+; If the job fails, you will get the full stacktrace on the REPL.
+(yq/retry-one-error! :q)
+; Returns a map containing the new state of the job.
+; Returns nil if there are no (more) jobs in state error for this queue.
+```
+
 # Testing
 
 For testing you will probably want determinism over an extra threadpool
@@ -331,7 +347,34 @@ These dynamic bindings will be in place when yoltq logs errors, warnings
 etc. about failing consumer functions, possibly making troubleshooting
 easier.
 
+## Limitations
+
+Datomic does not have anything like `for update skip locked`.
+Thus consuming a queue should be limited to a single JVM process.
+This library will take queue jobs by compare-and-swapping a lock+state,
+process the item and then compare-and-swapping the lock+new-state.
+It does so eagerly, thus if you have multiple JVM consumers you will
+most likely get many locking conflicts. It should work, but it's far
+from optimal.
+
+## Alternatives
+
+I did not find any alternatives for Datomic.
+
+If I were using PostgreSQL or any other database that supports
+`for update skip locked`, I'd use a queue that uses this.
+For Clojure there is [proletarian](https://github.com/msolli/proletarian).
+
+For Redis there is [carmine](https://github.com/ptaoussanis/carmine).
+
+Note: I have not tried these libraries myself.
+
 ## Change log
+
+#### 2022-06-30 v0.2.58 [diff](https://github.com/ivarref/yoltq/compare/v0.2.57...v0.2.58)
+Slightly more safe EDN printing and parsing.
+Recommended reading:
+[Pitfalls and bumps in Clojure's Extensible Data Notation (EDN)](https://nitor.com/en/articles/pitfalls-and-bumps-clojures-extensible-data-notation-edn)
 
 #### 2022-06-29 v0.2.57 [diff](https://github.com/ivarref/yoltq/compare/v0.2.56...v0.2.57)
 Added `(get-errors qname)` and `(retry-one-error! qname)`.
@@ -341,6 +384,7 @@ Improved:
 This was done in order to push new code while a queue was in error in an earlier
 version of the code. In this way rolling upgrades are possible regardless if there
 are queue errors.
+Can you tell that this issue hit me? ¯\\\_(ツ)\_/¯
 
 #### 2022-06-22 v0.2.56 [diff](https://github.com/ivarref/yoltq/compare/v0.2.55...v0.2.56)
 Added support for `:yoltq/queue-id` metadata on functions. I.e. it's possible to write
@@ -420,7 +464,7 @@ First publicly announced release.
 
 ## License
 
-Copyright © 2021 Ivar Refsdal
+Copyright © 2021-2022 Ivar Refsdal
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
