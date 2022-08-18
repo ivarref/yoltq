@@ -62,18 +62,25 @@ Imagine the following code:
 ```clojure
 (defn post-handler [user-input]
   (let [db-item (process user-input)
-        ext-ref (clj-http.client/post ext-service {...})] ; may throw exception
+        ext-ref (clj-http.client/post ext-service {:connection-timeout 3000  ; timeout in milliseconds 
+                                                   :socket-timeout     10000 ; timeout in milliseconds
+                                                   ...})] ; may throw exception
     @(d/transact conn [(assoc db-item :some/ext-ref ext-ref)])))
 ```
 
 What if the POST request fails? Should it be retried? For how long?
 Should it be allowed to fail? How do you then process failures later?
 
+PS: If you do not set connection/socket-timeout, there is a chance that
+clj-http/client will wait for all eternity in the case of a dropped TCP connection.
+
 The queue way to solve this would be:
 
 ```clojure
 (defn get-ext-ref [{:keys [id]}]
-  (let [ext-ref (clj-http.client/post ext-service {...})] ; may throw exception
+  (let [ext-ref (clj-http.client/post ext-service {:connection-timeout 3000  ; timeout in milliseconds 
+                                                   :socket-timeout     10000 ; timeout in milliseconds
+                                                   ...})] ; may throw exception
     @(d/transact conn [[:db/cas [:some/id id]
                         :some/ext-ref
                         nil
@@ -82,7 +89,7 @@ The queue way to solve this would be:
 (yq/add-consumer! :get-ext-ref get-ext-ref {:allow-cas-failure? true})
 
 (defn post-handler [user-input]
-  (let [{:some/keys [id] :as db-item} (process user-input)
+  (let [{:some/keys [id] :as db-item} (process user-input)]
     @(d/transact conn [db-item
                        (yq/put :get-ext-ref {:id id})])))
 ```
@@ -370,6 +377,21 @@ For Redis there is [carmine](https://github.com/ptaoussanis/carmine).
 Note: I have not tried these libraries myself.
 
 ## Change log
+
+#### 2022-08-18 v0.2.60 [diff](https://github.com/ivarref/yoltq/compare/v0.2.59...v0.2.60)
+Improved: Added config option `:healthy-allowed-error-time`:
+```
+    ; If you are dealing with a flaky downstream service, you may not want
+    ; yoltq to mark itself as unhealthy on the first failure encounter with
+    ; the downstream service. Change this setting to let yoltq mark itself
+    ; as healthy even though a queue item has been failing for some time.
+    :healthy-allowed-error-time    (Duration/ofMinutes 15)
+```
+
+#### 2022-08-15 v0.2.59 [diff](https://github.com/ivarref/yoltq/compare/v0.2.58...v0.2.59)
+Fixed:
+* Race condition that made the following possible: `stop!` would terminate the slow thread 
+watcher, and a stuck thread could keep `stop!` from completing! 
 
 #### 2022-06-30 v0.2.58 [diff](https://github.com/ivarref/yoltq/compare/v0.2.57...v0.2.58)
 Slightly more safe EDN printing and parsing.

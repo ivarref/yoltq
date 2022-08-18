@@ -2,6 +2,8 @@
   (:require [clojure.test :refer [deftest is use-fixtures] :refer-macros [thrown?]]
             [clojure.tools.logging :as log]
             [com.github.ivarref.yoltq :as yq]
+            [com.github.ivarref.yoltq.error-poller :as error-poller]
+            [com.github.ivarref.yoltq.ext-sys :as ext]
             [com.github.ivarref.yoltq.impl :as i]
             [com.github.ivarref.yoltq.migrate :as migrate]
             [com.github.ivarref.yoltq.test-queue :as tq]
@@ -9,7 +11,8 @@
             [com.github.ivarref.yoltq.utils :as uu]
             [datomic-schema.core]
             [datomic.api :as d]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre])
+  (:import (java.time Duration)))
 
 
 (use-fixtures :each tq/call-with-virtual-queue!)
@@ -367,3 +370,13 @@
     (is (= #{{:id "a"}} @received))
     #_(timbre/with-level :fatal
                          (is (thrown? Exception @(d/transact conn [(yq/put :q {})]))))))
+
+(deftest healthy-allowed-error-time-test
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q (fn [_] (throw (ex-info "" {}))))
+    @(d/transact conn [(yq/put :q {:work 123})])
+    (tq/consume-expect! :q :error)
+    (is (= 0 (error-poller/do-poll-errors @yq/*config* (ext/now-ms))))
+    (is (= 0 (error-poller/do-poll-errors @yq/*config* (+ (dec (.toMillis (Duration/ofMinutes 15))) (ext/now-ms)))))
+    (is (= 1 (error-poller/do-poll-errors @yq/*config* (+ (.toMillis (Duration/ofMinutes 15)) (ext/now-ms)))))))

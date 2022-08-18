@@ -1,9 +1,9 @@
 (ns com.github.ivarref.yoltq.error-poller-test
-  (:require [clojure.test :refer [deftest is]]
-            [com.github.ivarref.yoltq.error-poller :as ep]
+  (:require [clojure.edn :as edn]
+            [clojure.test :refer [deftest is]]
             [clojure.tools.logging :as log]
-            [com.github.ivarref.yoltq.log-init :as logconfig]
-            [clojure.edn :as edn]))
+            [com.github.ivarref.yoltq.error-poller :as ep]
+            [com.github.ivarref.yoltq.log-init :as logconfig]))
 
 
 (deftest error-poller

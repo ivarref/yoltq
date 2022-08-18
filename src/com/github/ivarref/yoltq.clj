@@ -44,6 +44,12 @@
        ; otherwise occur if competing with the tx-report-queue listener.
        :init-backoff-time             (Duration/ofSeconds 60)
 
+       ; If you are dealing with a flaky downstream service, you may not want
+       ; yoltq to mark itself as unhealthy on the first failure encounter with
+       ; the downstream service. Change this setting to let yoltq mark itself
+       ; as healthy even though a queue item has been failing for some time.
+       :healthy-allowed-error-time    (Duration/ofMinutes 15)
+
        ; How frequent polling for init, error and hung jobs should be done.
        :poll-delay                    (Duration/ofSeconds 10)
 
@@ -259,10 +265,10 @@
               (let [conn (d/connect uri)
                     started-consuming? (promise)
                     n 1]
-                (init! {:conn               conn
-                        :error-backoff-time (Duration/ofSeconds 1)
-                        :poll-delay         (Duration/ofSeconds 1)
-                        :max-execute-time   (Duration/ofSeconds 3)
+                (init! {:conn                         conn
+                        :error-backoff-time           (Duration/ofSeconds 1)
+                        :poll-delay                   (Duration/ofSeconds 1)
+                        :max-execute-time             (Duration/ofSeconds 3)
                         :slow-thread-show-stacktrace? false})
                 (add-consumer! :q (fn [_]
                                     (deliver started-consuming? true)
