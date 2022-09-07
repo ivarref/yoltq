@@ -11,7 +11,7 @@
     [datomic.api :as d])
   (:import (datomic Connection)
            (java.lang.management ManagementFactory)
-           (java.time Duration)
+           (java.time Duration Instant ZoneOffset ZonedDateTime)
            (java.util.concurrent ExecutorService Executors TimeUnit)))
 
 
@@ -246,6 +246,53 @@
         _ (assert (contains? handlers qname) "Queue not found")
         cfg (assoc-in cfg [:handlers qname :max-retries] Integer/MAX_VALUE)]
     (poller/poll-once! cfg qname :error)))
+
+(defn retry-stats
+  "Gather retry statistics.
+
+  Optional keyword arguments:
+  * :age-days —  last number of days to look at data from. Defaults to 30.
+  * :queue-name — only gather statistics for this queue name. Defaults to nil, meaning all queues.
+
+  Example return value:
+  {:queue-a {:ok 100, :retries 2, :retry-percentage 2.0}
+   :queue-b {:ok 100, :retries 75, :retry-percentage 75.0}}
+
+  From the example value above, we can see that :queue-b fails at a much higher rate than :queue-a.
+  Assuming that the queue consumers are correctly implemented, this means that the service representing :queue-b
+  is much more unstable than the one representing :queue-a. This again implies
+  that you will probably want to fix the downstream service of :queue-b, if that is possible.
+  "
+  [{:keys [age-days queue-name now]
+    :or   {age-days 30
+           now      (ZonedDateTime/now ZoneOffset/UTC)}}]
+  (let [{:keys [conn]} @*config*
+        db (d/db conn)]
+    (->> (d/query {:query {:find  '[?qname ?status ?tries ?init-time]
+                           :in    (into '[$] (when queue-name '[?qname]))
+                           :where '[[?e :com.github.ivarref.yoltq/queue-name ?qname]
+                                    [?e :com.github.ivarref.yoltq/status ?status]
+                                    [?e :com.github.ivarref.yoltq/tries ?tries]
+                                    [?e :com.github.ivarref.yoltq/init-time ?init-time]]}
+                   :args  (remove nil? [db queue-name])})
+         (mapv (partial zipmap [:qname :status :tries :init-time]))
+         (mapv #(update % :init-time (fn [init-time] (.atZone (Instant/ofEpochMilli init-time) ZoneOffset/UTC))))
+         (mapv #(assoc % :age-days (.toDays (Duration/between (:init-time %) now))))
+         (filter #(<= (:age-days %) age-days))
+         (group-by :qname)
+         (mapv (fn [[q values]]
+                 {q (let [{:keys [ok retries] :as m} (->> values
+                                                          (mapv (fn [{:keys [tries status]}]
+                                                                  (condp = status
+                                                                    u/status-init {}
+                                                                    u/status-processing {:processing 1 :retries (dec tries)}
+                                                                    u/status-done {:ok 1 :retries (dec tries)}
+                                                                    u/status-error {:error 1 :retries (dec tries)})))
+                                                          (reduce (partial merge-with +) {}))]
+                      (into (sorted-map) (merge m
+                                                (when (pos-int? ok)
+                                                  {:retry-percentage (double (* 100 (/ retries ok)))}))))}))
+         (into (sorted-map)))))
 
 (comment
   (do

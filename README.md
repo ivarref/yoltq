@@ -378,6 +378,34 @@ Note: I have not tried these libraries myself.
 
 ## Change log
 
+#### 2022-09-07 v0.2.61 [diff](https://github.com/ivarref/yoltq/compare/v0.2.60...v0.2.61)
+Added function option `retry-stats`:
+
+```clojure
+(ns com.github.ivarref.yoltq)
+
+(defn retry-stats
+  "Gather retry statistics.
+
+  Optional keyword arguments:
+  * :age-days —  last number of days to look at data from. Defaults to 30.
+  * :queue-name — only gather statistics for this queue name. Defaults to nil, meaning all queues.
+
+  Example return value:
+  {:queue-a {:ok 100, :retries 2, :retry-percentage 2.0}
+   :queue-b {:ok 100, :retries 75, :retry-percentage 75.0}}
+
+  From the example value above, we can see that :queue-b fails at a much higher rate than :queue-a.
+  Assuming that the queue consumers are correctly implemented, this means that the service representing :queue-b
+  is much more unstable than the one representing :queue-a. This again implies
+  that you will probably want to fix the downstream service of :queue-b, if that is possible.
+  "
+  [{:keys [age-days queue-name now]
+    :or   {age-days 30
+           now      (ZonedDateTime/now ZoneOffset/UTC)}}]
+  ...)
+```
+
 #### 2022-08-18 v0.2.60 [diff](https://github.com/ivarref/yoltq/compare/v0.2.59...v0.2.60)
 Improved: Added config option `:healthy-allowed-error-time`:
 ```
