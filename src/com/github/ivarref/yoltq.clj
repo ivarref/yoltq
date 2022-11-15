@@ -263,11 +263,11 @@
   is much more unstable than the one representing :queue-a. This again implies
   that you will probably want to fix the downstream service of :queue-b, if that is possible.
   "
-  [{:keys [age-days queue-name now]
+  [{:keys [age-days queue-name now db]
     :or   {age-days 30
            now      (ZonedDateTime/now ZoneOffset/UTC)}}]
   (let [{:keys [conn]} @*config*
-        db (d/db conn)]
+        db (or db (d/db conn))]
     (->> (d/query {:query {:find  '[?qname ?status ?tries ?init-time]
                            :in    (into '[$] (when queue-name '[?qname]))
                            :where '[[?e :com.github.ivarref.yoltq/queue-name ?qname]
@@ -292,6 +292,66 @@
                       (into (sorted-map) (merge m
                                                 (when (pos-int? ok)
                                                   {:retry-percentage (double (* 100 (/ retries ok)))}))))}))
+         (into (sorted-map)))))
+
+(defn- percentile [n values]
+  (let [idx (int (Math/floor (* (count values) (/ n 100))))]
+    (nth values idx)))
+
+(defn processing-time-stats
+  "Gather processing time statistics. Default unit is seconds.
+
+  Optional keyword arguments:
+  * :age-days —  last number of days to look at data from. Defaults to 30.
+                 Use nil to have no limit.
+
+  * :queue-name — only gather statistics for this queue name. Defaults to nil, meaning all queues.
+
+  * :duration->long - Specify what unit should be used for values.
+                      Must take a java.time.Duration as input and return a long.
+
+                      Defaults to (fn [duration] (.toSeconds duration).
+                      I.e. the default unit is seconds.
+
+  Example return value:
+  {:queue-a {:avg 1
+             :max 10
+             :min 0
+             :p50 ...
+             :p90 ...
+             :p95 ...
+             :p99 ...}}"
+  [{:keys [age-days queue-name now db duration->long]
+    :or   {age-days 30
+           now      (ZonedDateTime/now ZoneOffset/UTC)
+           duration->long (fn [duration] (.toSeconds duration))}}]
+  (let [{:keys [conn]} @*config*
+        db (or db (d/db conn))
+        ->zdt #(.atZone (Instant/ofEpochMilli %) ZoneOffset/UTC)]
+    (->> (d/query {:query {:find  '[?qname ?status ?init-time ?done-time]
+                           :in    (into '[$ ?status] (when queue-name '[?qname]))
+                           :where '[[?e :com.github.ivarref.yoltq/queue-name ?qname]
+                                    [?e :com.github.ivarref.yoltq/status ?status]
+                                    [?e :com.github.ivarref.yoltq/init-time ?init-time]
+                                    [?e :com.github.ivarref.yoltq/done-time ?done-time]]}
+                   :args  (vec (remove nil? [db u/status-done queue-name]))})
+         (mapv (partial zipmap [:qname :status :init-time :done-time]))
+         (mapv #(update % :init-time ->zdt))
+         (mapv #(update % :done-time ->zdt))
+         (mapv #(assoc % :age-days (.toDays (Duration/between (:init-time %) now))))
+         (mapv #(assoc % :spent-time (duration->long (Duration/between (:init-time %) (:done-time %)))))
+         (filter #(or (nil? age-days) (<= (:age-days %) age-days)))
+         (group-by :qname)
+         (mapv (fn [[q values]]
+                 (let [values (vec (sort (mapv :spent-time values)))]
+                   {q (sorted-map
+                        :max (apply max values)
+                        :avg (int (Math/floor (/ (reduce + 0 values) (count values))))
+                        :p50 (percentile 50 values)
+                        :p90 (percentile 90 values)
+                        :p95 (percentile 95 values)
+                        :p99 (percentile 99 values)
+                        :min (apply min values))})))
          (into (sorted-map)))))
 
 (comment

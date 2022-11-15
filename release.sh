@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ $# -ne 1 ]]; then
+    echo "Illegal number of parameters" >&2
+    exit 2
+fi
+
 set -ex
 
 git update-index --refresh
@@ -23,11 +28,9 @@ sed -i "s/HEAD/v$VERSION/g" ./README.md
 git add pom.xml README.md
 git commit -m "Release $VERSION"
 git reset --soft HEAD~2
-git commit -m"Release $VERSION
-$MSG"
+git commit -m"Release $VERSION: $1"
 
-git tag -a v"$VERSION" -m "Release v$VERSION
-$MSG"
+git tag -a v"$VERSION" -m "Release v$VERSION: $1"
 git push --follow-tags --force
 
 clojure -X:deploy

@@ -378,8 +378,44 @@ Note: I have not tried these libraries myself.
 
 ## Change log
 
+#### 2022-11-15 v0.2.62 [diff](https://github.com/ivarref/yoltq/compare/v0.2.61...v0.2.62)
+Added function `processing-time-stats`:
+
+```clojure
+(ns com.github.ivarref.yoltq)
+
+(defn processing-time-stats
+  "Gather processing time statistics.
+
+  Optional keyword arguments:
+  * :age-days —  last number of days to look at data from. Defaults to 30.
+                 Use nil to have no limit.
+
+  * :queue-name — only gather statistics for this queue name. Defaults to nil, meaning all queues.
+
+  * :duration->long - Specify what unit should be used for values.
+                      Must take a java.time.Duration as input and return a long.
+
+                      Defaults to (fn [duration] (.toSeconds duration).
+                      I.e. the default unit is seconds.
+
+  Example return value:
+  {:queue-a {:avg 1
+             :max 10
+             :min 0
+             :p50 ...
+             :p90 ...
+             :p95 ...
+             :p99 ...}}"
+ [{:keys [age-days queue-name now db duration->long]
+  :or   {age-days 30
+         now      (ZonedDateTime/now ZoneOffset/UTC)
+         duration->long (fn [duration] (.toSeconds duration))}}]
+  ...)
+```
+
 #### 2022-09-07 v0.2.61 [diff](https://github.com/ivarref/yoltq/compare/v0.2.60...v0.2.61)
-Added function option `retry-stats`:
+Added function `retry-stats`:
 
 ```clojure
 (ns com.github.ivarref.yoltq)
