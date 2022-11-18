@@ -131,7 +131,8 @@ Inspecting `(yq/put :q {:work 123})]` you will see something like this:
 
 This is the queue job as it will be stored into the database. 
 You can see that the payload, i.e. the second argument of `yq/put`,
-is persisted into the database. Thus the payload must be `pr-str`-able.
+is persisted into the database. Thus the payload must be `pr-str`-able (unless you have specified
+custom `:encode` and `:decode` functions that override this).
 
 
 A queue job will initially have status `:init`.
@@ -220,6 +221,47 @@ is shut down abruptly during processing of queue jobs.
 A queue job will remain in status `:error` once `:max-retries` (default: 100) have been reached.
 Ideally this will not happen. ¯\\\_(ツ)\_/¯
 
+### Custom encoding and decoding
+
+Yoltq will use `pr-str` and `clojure.edn/read-string` by default to encode and decode data.
+You may specify `:encode` and `:decode` either globally or per queue to override this behaviour.
+The `:encode` function must return a byte array or a string.
+
+For example if you want to use [nippy](https://github.com/ptaoussanis/nippy):
+```clojure
+(require '[taoensso.nippy :as nippy])
+
+; Globally for all queues:
+(yq/init!
+  {:conn conn
+   :encode nippy/freeze
+   :decode nippy/thaw})
+
+; Or per queue:
+(yq/add-consumer! 
+  :q ; Queue to consume  
+  (fn [payload] (println "got payload:" payload)) ; Queue consumer function
+  {:encode nippy/freeze
+   :decode nippy/thaw}) ; Queue options, here with :encode and :decode
+```
+
+### Partitions
+
+Yoltq supports specifying which [partition](https://docs.datomic.com/on-prem/schema/schema.html#partitions)
+queue entities should belong to.
+The default function is:
+```clojure
+(defn default-partition-fn [_queue-name]
+  (keyword "yoltq" (str "queue_" (.getValue (java.time.Year/now)))))
+```
+This is to say that there will be a single partition per year for yoltq.
+Yoltq will take care of creating the partition if it does not exist.
+
+You may override this function, either globally or per queue, with the keyword `:partition-fn`.
+E.g.:
+```clojure
+(yq/init! {:conn conn :partition-fn (fn [_queue-name] :my-partition)})
+```
 
 ### All configuration options
 
@@ -376,7 +418,28 @@ For Redis there is [carmine](https://github.com/ptaoussanis/carmine).
 
 Note: I have not tried these libraries myself.
 
+## Other stuff
+
+If you liked this library, you may also like:
+
+* [conformity](https://github.com/avescodes/conformity): A Clojure/Datomic library for idempotently transacting norms into your database – be they schema, data, or otherwise.
+* [datomic-schema](https://github.com/ivarref/datomic-schema): Simplified writing of Datomic schemas (works with conformity).
+* [double-trouble](https://github.com/ivarref/double-trouble):  Handle duplicate Datomic transactions with ease.
+* [gen-fn](https://github.com/ivarref/gen-fn): Generate Datomic function literals from regular Clojure namespaces.
+* [rewriting-history](https://github.com/ivarref/rewriting-history): A library to rewrite Datomic history.
+
 ## Change log
+
+#### 2022-11-18 v0.2.63 [diff](https://github.com/ivarref/yoltq/compare/v0.2.62...v0.2.63)
+Added custom `:encode` and `:decode` support.
+
+Added support for specifying `:partifion-fn` to specify which partition a queue item should belong to.
+It defaults to:
+```clojure
+(defn default-partition-fn [_queue-name]
+  (keyword "yoltq" (str "queue_" (.getValue (Year/now)))))
+```
+Yoltq takes care of creating the partition if it does not exist.
 
 #### 2022-11-15 v0.2.62 [diff](https://github.com/ivarref/yoltq/compare/v0.2.61...v0.2.62)
 Added function `processing-time-stats`:

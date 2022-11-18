@@ -57,7 +57,6 @@
 (defn get-queue-item [db id]
   (-> (d/pull db '[:*] [:com.github.ivarref.yoltq/id id])
       (dissoc :db/id)
-      (update :com.github.ivarref.yoltq/payload edn/read-string)
       (update :com.github.ivarref.yoltq/opts (fn [s] (or (when s (edn/read-string s)) {})))
       (update :com.github.ivarref.yoltq/bindings
               (fn [s]
