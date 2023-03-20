@@ -156,7 +156,9 @@ the payload. It can be added like this:
                             ; consumer function to ensure idempotence.
    :valid-payload? (fn [payload] (some? (:id payload))) ; Function that verifies payload. Should return truthy for valid payloads.
                                                         ; The default function always returns true.
-   :max-retries 10})        ; Specify maximum number of times an item will be retried. Default: 100
+   :max-retries 10})        ; Specify maximum number of times an item will be retried. Default: 10000.
+                            ; If :max-retries is given as 0, the job will ~always be retried, i.e.
+                            ; 9223372036854775807 times (Long/MAX_VALUE).
 ```
 
 The `payload` will be deserialized from the database using `clojure.edn/read-string` before invocation, i.e.
@@ -218,8 +220,10 @@ is shut down abruptly during processing of queue jobs.
 
 ### Giving up
 
-A queue job will remain in status `:error` once `:max-retries` (default: 100) have been reached.
-Ideally this will not happen. ¯\\\_(ツ)\_/¯
+A queue job will remain in status `:error` once `:max-retries` (default: 10000) have been reached.
+If `:max-retries` is given as `0`, the job will be retried 9223372036854775807 times before
+giving up.
+Ideally this should not happen. ¯\\\_(ツ)\_/¯
 
 ### Custom encoding and decoding
 
@@ -429,6 +433,12 @@ If you liked this library, you may also like:
 * [rewriting-history](https://github.com/ivarref/rewriting-history): A library to rewrite Datomic history.
 
 ## Change log
+
+#### 2023-03-20 v0.2.64 [diff](https://github.com/ivarref/yoltq/compare/v0.2.63...v0.2.64)
+Added support for `max-retries` being `0`, meaning the job should be retried forever
+(or at least 9223372036854775807 times).
+
+Changed the default for `max-retries` from `100` to `10000`.
 
 #### 2022-11-18 v0.2.63 [diff](https://github.com/ivarref/yoltq/compare/v0.2.62...v0.2.63)
 Added custom `:encode` and `:decode` support.

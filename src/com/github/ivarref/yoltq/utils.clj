@@ -103,13 +103,18 @@
         (prepare-processing db id queue-name old-lock :init))
       (log/debug "no new-items in :init status for queue" queue-name))))
 
+(defn- get-max-retries [cfg queue-name]
+  (let [v (get-in cfg [:handlers queue-name :max-retries] (:max-retries cfg))]
+    (if (and (number? v) (pos-int? v))
+      v
+      Long/MAX_VALUE)))
 
-(defn get-error [{:keys [conn db error-backoff-time max-retries] :as cfg} queue-name]
+(defn get-error [{:keys [conn db error-backoff-time] :as cfg} queue-name]
   (assert (instance? Connection conn) (str "Expected conn to be of type datomic.Connection. Was: "
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
   (let [db (or db (d/db conn))
-        max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)]
+        max-retries (get-max-retries cfg queue-name)]
     (when-let [ids (->> (d/q '[:find ?id ?lock
                                :in $ ?queue-name ?backoff ?max-tries ?current-version
                                :where
@@ -118,26 +123,26 @@
                                [?e :com.github.ivarref.yoltq/error-time ?time]
                                [(>= ?backoff ?time)]
                                [?e :com.github.ivarref.yoltq/tries ?tries]
-                               [(> ?max-tries ?tries)]
+                               [(>= ?max-tries ?tries)]
                                [?e :com.github.ivarref.yoltq/id ?id]
                                [?e :com.github.ivarref.yoltq/lock ?lock]
                                [?e :com.github.ivarref.yoltq/version ?current-version]]
                              db
                              queue-name
                              (- (now-ms) error-backoff-time)
-                             (inc max-retries)
+                             max-retries
                              current-version)
                         (not-empty))]
       (let [[id old-lock] (rand-nth (into [] ids))]
         (prepare-processing db id queue-name old-lock :error)))))
 
 
-(defn get-hung [{:keys [conn db now hung-backoff-time max-retries] :as cfg} queue-name]
+(defn get-hung [{:keys [conn db now hung-backoff-time] :as cfg} queue-name]
   (assert (instance? Connection conn) (str "Expected conn to be of type datomic.Connection. Was: "
                                            (str (if (nil? conn) "nil" conn))
                                            "\nConfig was: " (str cfg)))
   (let [now (or now (now-ms))
-        max-retries (get-in cfg [:handlers queue-name :max-retries] max-retries)
+        max-retries (get-max-retries cfg queue-name)
         db (or db (d/db conn))]
     (when-let [ids (->> (d/q '[:find ?id ?lock ?tries
                                :in $ ?qname ?backoff ?current-version

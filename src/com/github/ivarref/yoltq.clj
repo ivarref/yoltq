@@ -24,7 +24,10 @@
   (-> {; Default number of times a queue job will be retried before giving up
        ; Can be overridden on a per-consumer basis with
        ; (yq/add-consumer! :q (fn [payload] ...) {:max-retries 200})
-       :max-retries                   100
+       ; If you want no limit on the number of retries, specify
+       ; the value `0`. That will set the effective retry limit to
+       ; 9223372036854775807 times.
+       :max-retries                   10000
 
        ; Minimum amount of time to wait before a failed queue job is retried
        :error-backoff-time            (Duration/ofSeconds 5)
@@ -244,7 +247,7 @@
 (defn retry-one-error! [qname]
   (let [{:keys [handlers] :as cfg} @*config*
         _ (assert (contains? handlers qname) "Queue not found")
-        cfg (assoc-in cfg [:handlers qname :max-retries] Integer/MAX_VALUE)]
+        cfg (assoc-in cfg [:handlers qname :max-retries] Long/MAX_VALUE)]
     (poller/poll-once! cfg qname :error)))
 
 (defn retry-stats
