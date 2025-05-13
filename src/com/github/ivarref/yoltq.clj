@@ -12,8 +12,7 @@
   (:import (datomic Connection)
            (java.lang.management ManagementFactory)
            (java.time Duration Instant ZoneOffset ZonedDateTime)
-           (java.util.concurrent ExecutorService Executors TimeUnit)))
-
+           (java.util.concurrent ExecutorService Executors ScheduledExecutorService TimeUnit)))
 
 (defonce ^:dynamic *config* (atom nil))
 (defonce threadpool (atom nil))
@@ -85,7 +84,7 @@
       u/duration->millis))
 
 
-(defn init! [{:keys [conn] :as cfg}]
+(defn init! [{:keys [conn tx-report-queue] :as cfg}]
   (assert (instance? Connection conn) (str "Expected :conn to be of type datomic Connection. Was: " (or (some-> conn class str) "nil")))
   (locking threadpool
     @(d/transact conn i/schema)
@@ -97,6 +96,9 @@
                                             :system-error              (atom {})
                                             :healthy?                  (atom nil)
                                             :slow?                     (atom nil)
+                                            :get-tx-report-queue       (fn []
+                                                                         (or tx-report-queue
+                                                                             (d/tx-report-queue conn)))
                                             :slow-thread-watcher-done? (promise)}
                                            default-opts
                                            (if *test-mode* old-conf (select-keys old-conf [:handlers]))
@@ -140,9 +142,9 @@
     (let [pool (reset! threadpool (Executors/newScheduledThreadPool (+ 1 pool-size)))
           queue-listener-ready (promise)]
       (reset! *running?* true)
-      (.scheduleAtFixedRate pool (fn [] (poller/poll-all-queues! *running?* *config* pool)) 0 poll-delay TimeUnit/MILLISECONDS)
-      (.scheduleAtFixedRate pool (fn [] (errpoller/poll-errors *running?* *config*)) 0 system-error-poll-delay TimeUnit/MILLISECONDS)
-      (.execute pool (fn [] (rq/report-queue-listener *running?* queue-listener-ready pool *config*)))
+      (.scheduleAtFixedRate ^ScheduledExecutorService pool (fn [] (poller/poll-all-queues! *running?* *config* pool)) 0 poll-delay TimeUnit/MILLISECONDS)
+      (.scheduleAtFixedRate ^ScheduledExecutorService pool (fn [] (errpoller/poll-errors *running?* *config*)) 0 system-error-poll-delay TimeUnit/MILLISECONDS)
+      (.execute ^ScheduledExecutorService pool (fn [] (rq/report-queue-listener *running?* queue-listener-ready pool *config*)))
       (future (try
                 (slow-executor/show-slow-threads pool *config*)
                 (finally
@@ -327,7 +329,7 @@
   [{:keys [age-days queue-name now db duration->long]
     :or   {age-days 30
            now      (ZonedDateTime/now ZoneOffset/UTC)
-           duration->long (fn [duration] (.toSeconds duration))}}]
+           duration->long (fn [duration] (.toSeconds ^Duration duration))}}]
   (let [{:keys [conn]} @*config*
         db (or db (d/db conn))
         ->zdt #(.atZone (Instant/ofEpochMilli %) ZoneOffset/UTC)]
@@ -356,6 +358,15 @@
                         :p99 (percentile 99 values)
                         :min (apply min values))})))
          (into (sorted-map)))))
+
+
+
+(defn add-tx-report-queue!
+  ([conn]
+   (add-tx-report-queue! conn :default))
+  ([conn id]
+   (if @*config*
+     :...)))
 
 (comment
   (do
