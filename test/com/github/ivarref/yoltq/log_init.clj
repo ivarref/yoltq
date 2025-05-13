@@ -3,6 +3,8 @@
             [taoensso.timbre :as timbre]
             [clojure.string :as str]))
 
+(set! *warn-on-reflection* true)
+
 (def level-colors
   {;:warn colors/red
    :error colors/red})

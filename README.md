@@ -434,6 +434,40 @@ If you liked this library, you may also like:
 
 ## Change log
 
+#### 2025-05-13 v0.2.?? [diff](https://github.com/ivarref/yoltq/compare/v0.2.64...HEAD)
+Added support for specifying `tx-report-queue` as a keyword in `init!`. Yoltq will
+then not grab the datomic report queue, but use the one provided: 
+
+```clojure
+(require '[com.github.ivarref.yoltq :as yq])
+(yq/init! {:conn            conn
+           :tx-report-queue (yq/get-tx-report-queue-multicast! my-conn :yoltq)
+                            ; ^^ can be any `java.util.concurrent.BlockingQueue` value
+                            })
+
+(another-tx-report-consumer! (yq/get-tx-report-queue-multicast! my-conn :another-consumer-id))
+
+```
+
+Added multicast support for `datomic.api/tx-report-queue`:
+```clojure
+(def my-q1 (yq/get-tx-report-queue-multicast! my-conn :q-id-1))
+; ^^ consume my-q1 just like you would do `datomic.api/tx-report-queue`
+
+(def my-q2 (yq/get-tx-report-queue-multicast! my-conn :q-id-2))
+; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue`
+```
+
+`yq/get-tx-report-queue-multicast!` returns, like
+`datomic.api/tx-report-queue`,
+`java.util.concurrent.BlockingQueue` and starts a background thread that does 
+the multicasting as needed. Identical calls to `yq/get-tx-report-queue-multicast!`
+returns the same `BlockingQueue`.
+
+Changed the default for `max-retries` from `10000` to `9223372036854775807`.
+
+Fixed reflection warnings.
+
 #### 2023-03-20 v0.2.64 [diff](https://github.com/ivarref/yoltq/compare/v0.2.63...v0.2.64)
 Added support for `max-retries` being `0`, meaning the job should be retried forever
 (or at least 9223372036854775807 times).
