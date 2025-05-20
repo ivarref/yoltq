@@ -48,7 +48,7 @@
 
                   (color-f (force msg_))
 
-                  #_maybe-stacktrace))))
+                  maybe-stacktrace))))
 
 
     (catch Throwable t
