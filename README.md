@@ -441,21 +441,48 @@ then not grab the datomic report queue, but use the one provided:
 ```clojure
 (require '[com.github.ivarref.yoltq :as yq])
 (yq/init! {:conn            conn
-           :tx-report-queue (yq/get-tx-report-queue-multicast! my-conn :yoltq)
+           :tx-report-queue (yq/get-tx-report-queue-multicast! conn :yoltq)
                             ; ^^ can be any `java.util.concurrent.BlockingQueue` value
                             })
 
-(another-tx-report-consumer! (yq/get-tx-report-queue-multicast! my-conn :another-consumer-id))
+(another-tx-report-consumer! (yq/get-tx-report-queue-multicast! conn :another-consumer-id))
 
 ```
 
 Added multicast support for `datomic.api/tx-report-queue`:
 ```clojure
-(def my-q1 (yq/get-tx-report-queue-multicast! my-conn :q-id-1))
+(require '[com.github.ivarref.yoltq :as yq])
+(def my-q1 (yq/get-tx-report-queue-multicast! conn :q-id-1))
 ; ^^ consume my-q1 just like you would do `datomic.api/tx-report-queue`
 
-(def my-q2 (yq/get-tx-report-queue-multicast! my-conn :q-id-2))
-; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue`
+(def my-q2 (yq/get-tx-report-queue-multicast! conn :q-id-2))
+; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue` for the given `conn`
+
+(def my-q3 (yq/get-tx-report-queue-multicast! conn :q-id-3 true))
+; my-q3 specifies the third argument, `send-end-token?`, to true, so it will receive `:end` if the queue is stopped.
+; This can enable simpler consuming of queues:
+(future
+  (loop []
+    (let [q-item (.take ^java.util.concurrent.BlockingQueue my-q3)]
+      (if (= q-item :end)
+        (println "Time to exit. Goodbye!")
+        (do
+          (println "Processing q-item" q-item)
+          (recur))))))
+
+@(d/transact conn [{:db/doc "new-data"}])
+
+; Stop the queue:
+(yq/stop-multicaster-id! conn :q-id-3)
+=> true
+; The multicaster thread will send `:end` and the consumer thread will then print "Time to exit. Goodbye!".
+
+; if the queue is already stopped (or never was started), `stop-multicaster...` functions will return false:
+(yq/stop-multicaster-id! conn :already-stopped-queue-or-typo)
+=> false
+
+; Stop all queues for all connections:
+(yq/stop-all-multicasters!)
 ```
 
 `yq/get-tx-report-queue-multicast!` returns, like

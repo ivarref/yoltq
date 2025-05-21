@@ -407,7 +407,11 @@
   If this is the last report destination for the given `conn`, the multicaster thread will exit.
   Repeated calls are no-op.
 
-  Returns nil."
+  The multicaster thread will send `:end` if `send-end-token?` was `true` when `get-tx-report-queue-multicast!`
+  was called.
+
+  Returns `true` if the queue was stopped.
+  Return `false` if the queue does not exist."
   [conn id]
   (assert (instance? Connection conn))
   (rq/stop-multicaster-id! conn id))
@@ -417,7 +421,11 @@
   The multicaster thread will exit.
   Repeated calls are no-op.
 
-  Returns nil."
+  The multicaster thread will send `:end` if `send-end-token?` was `true` when `get-tx-report-queue-multicast!`
+  was called.
+
+  Returns `true` if any queue belonging to `conn` was stopped.
+  Returns `false` is `conn` did not have any associated queues."
   [conn]
   (assert (instance? Connection conn))
   (rq/stop-multicaster! conn))
@@ -427,7 +435,11 @@
   All multicaster threads will exit.
   Repeated calls are no-op.
 
-  Returns nil."
+  The multicaster thread will send `:end` if `send-end-token?` was `true` when `get-tx-report-queue-multicast!`
+  was called.
+
+  Returns `true` if any queue was stopped.
+  Returns `false` if no queues existed."
   []
   (rq/stop-all-multicasters!))
 
@@ -485,7 +497,7 @@
             started-consuming? (promise)
             n 1]
         (init! {:conn                         conn
-                :tx-report-queue              (get-tx-report-queue-multicast! conn :yoltq)
+                :tx-report-queue              (get-tx-report-queue-multicast! conn :yoltq true)
                 :slow-thread-show-stacktrace? false})
         (add-consumer! :q (fn [_]
                             (deliver started-consuming? true)))
@@ -493,8 +505,11 @@
         (start!)
         (log/info "begin start! ... Done")
         (Thread/sleep 2000)
+        (log/info "*******************************************")
         @(d/transact conn [(put :q {:work 123})])
         @started-consuming?
+        (stop-multicaster! conn)
+        (log/info "*******************************************")
         (stop!)
         (log/info "stop! done")
         nil))))
