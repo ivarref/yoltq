@@ -471,6 +471,9 @@ Added multicast support for `datomic.api/tx-report-queue`:
           (println "Processing q-item" q-item)
           (recur))))))
 
+; The default value for `send-end-token?` is `false`, i.e. the behaviour will be
+; identical to that of datomic.api/tx-report-queue.
+
 @(d/transact conn [{:db/doc "new-data"}])
 
 ; Stop the queue:

@@ -390,7 +390,8 @@
    Repeated calls using the same `conn` and `id` returns the same queue.
 
    The optional third parameter, `send-end-token?`, if set to `true`, instructs the multicaster thread
-   to send `:end` if the queue is stopped. The default value is `false`.
+   to send `:end` if the queue is stopped.
+   The default value for `send-end-token?` is `false`.
 
    A queue may be stopped using `stop-multicaster-id!`, `stop-multicaster!` or `stop-all-multicasters!`.
 
