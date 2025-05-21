@@ -334,7 +334,7 @@
   (not= (all-queues old)
         (all-queues new)))
 
-(defn stop-multicaster-id! [conn id]
+(defn stop-multicast-consumer-id! [conn id]
   (assert (instance? Connection conn))
   (let [did-remove? (atom nil)]
     (locking consumer-state-lock

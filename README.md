@@ -473,12 +473,12 @@ Added multicast support for `datomic.api/tx-report-queue`:
 @(d/transact conn [{:db/doc "new-data"}])
 
 ; Stop the queue:
-(yq/stop-multicaster-id! conn :q-id-3)
+(yq/stop-multicast-consumer-id! conn :q-id-3)
 => true
 ; The multicaster thread will send `:end` and the consumer thread will then print "Time to exit. Goodbye!".
 
 ; if the queue is already stopped (or never was started), `stop-multicaster...` functions will return false:
-(yq/stop-multicaster-id! conn :already-stopped-queue-or-typo)
+(yq/stop-multicast-consumer-id! conn :already-stopped-queue-or-typo)
 => false
 
 ; Stop all queues for all connections:

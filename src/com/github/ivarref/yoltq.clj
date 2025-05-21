@@ -402,7 +402,7 @@
    (assert (boolean? send-end-token?))
    (rq/get-tx-report-queue-multicast! conn id send-end-token?)))
 
-(defn stop-multicaster-id!
+(defn stop-multicast-consumer-id!
   "Stop forwarding reports from datomic.api/tx-report-queue to the queue identified by `conn` and `id`.
   If this is the last report destination for the given `conn`, the multicaster thread will exit.
   Repeated calls are no-op.
@@ -414,7 +414,7 @@
   Return `false` if the queue does not exist."
   [conn id]
   (assert (instance? Connection conn))
-  (rq/stop-multicaster-id! conn id))
+  (rq/stop-multicast-consumer-id! conn id))
 
 (defn stop-multicaster!
   "Stop forwarding reports from datomic.api/tx-report-queue to any queues belonging to `conn`.
