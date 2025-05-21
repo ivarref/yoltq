@@ -459,7 +459,7 @@ Added multicast support for `datomic.api/tx-report-queue`:
 ; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue` for the given `conn`
 
 (def my-q3 (yq/get-tx-report-queue-multicast! conn :q-id-3 true))
-; my-q3 specifies the third argument, `send-end-token?`, to true.
+; my-q3 specifies the optional third argument, `send-end-token?`, to true.
 ; The queue will then receive `:end` if the queue is stopped.
 ; This can enable simpler consuming of queues:
 (future
