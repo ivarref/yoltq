@@ -475,9 +475,11 @@ Added multicast support for `datomic.api/tx-report-queue`:
 ; Stop the queue:
 (yq/stop-multicast-consumer-id! conn :q-id-3)
 => true
-; The multicaster thread will send `:end` and the consumer thread will then print "Time to exit. Goodbye!".
+; The multicaster thread will send `:end`.
+; The consumer thread will then print "Time to exit. Goodbye!".
 
-; if the queue is already stopped (or never was started), `stop-multicaster...` functions will return false:
+; if the queue is already stopped (or never was started), the `stop-multicaster...` 
+; functions will return false:
 (yq/stop-multicast-consumer-id! conn :already-stopped-queue-or-typo)
 => false
 
