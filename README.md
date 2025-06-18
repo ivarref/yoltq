@@ -434,9 +434,9 @@ If you liked this library, you may also like:
 
 ## Change log
 
-#### 2025-05-13 v0.2.?? [diff](https://github.com/ivarref/yoltq/compare/v0.2.64...HEAD)
+#### [Unreleased]
 Added support for specifying `tx-report-queue` as a keyword in `init!`. Yoltq will
-then not grab the datomic report queue, but use the one provided: 
+then not grab the datomic report queue, but use the one provided:
 
 ```clojure
 (require '[com.github.ivarref.yoltq :as yq])
@@ -686,7 +686,12 @@ Added `:valid-payload?` option for queue consumers.
 Improved error reporting.
 
 #### 2021-09-24 v0.2.33
+
 First publicly announced release.
+
+## Making a new release
+
+Go to https://github.com/ivarref/yoltq/actions/workflows/release.yml and press `Run workflow`.
 
 ## License
 
