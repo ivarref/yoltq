@@ -435,6 +435,8 @@ If you liked this library, you may also like:
 ## Change log
 
 #### [Unreleased]
+
+#### [v0.2.82] - 2025-06-18
 Added support for specifying `tx-report-queue` as a keyword in `init!`. Yoltq will
 then not grab the datomic report queue, but use the one provided:
 
