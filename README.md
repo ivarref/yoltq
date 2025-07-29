@@ -1,7 +1,8 @@
 # yoltq
 
-An opinionated Datomic queue for building (more) reliable systems. 
-Implements the [transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
+An opinionated Datomic queue for building (more) reliable systems.
+Implements the
+[transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
 pattern.
 Supports retries, backoff, ordering and more.
 On-prem only.
@@ -62,8 +63,8 @@ Imagine the following code:
 ```clojure
 (defn post-handler [user-input]
   (let [db-item (process user-input)
-        ext-ref (clj-http.client/post ext-service {:connection-timeout 3000  ; timeout in milliseconds 
-                                                   :socket-timeout     10000 ; timeout in milliseconds
+        ext-ref (clj-http.client/post ext-service {:connection-timeout 3000 ; milliseconds 
+                                                   :socket-timeout     10000 ; milliseconds
                                                    ...})] ; may throw exception
     @(d/transact conn [(assoc db-item :some/ext-ref ext-ref)])))
 ```
@@ -78,8 +79,8 @@ The queue way to solve this would be:
 
 ```clojure
 (defn get-ext-ref [{:keys [id]}]
-  (let [ext-ref (clj-http.client/post ext-service {:connection-timeout 3000  ; timeout in milliseconds 
-                                                   :socket-timeout     10000 ; timeout in milliseconds
+  (let [ext-ref (clj-http.client/post ext-service {:connection-timeout 3000  ; milliseconds 
+                                                   :socket-timeout     10000 ; milliseconds
                                                    ...})] ; may throw exception
     @(d/transact conn [[:db/cas [:some/id id]
                         :some/ext-ref
@@ -105,7 +106,8 @@ Thus `get-ext-ref` and any queue consumer should tolerate to
 be executed successfully several times.
 
 For `get-ext-ref` this is solved by using
-the database function [:db/cas (compare-and-swap)](https://docs.datomic.com/on-prem/transactions/transaction-functions.html#dbfn-cas)
+the database function
+[:db/cas (compare-and-swap)](https://docs.datomic.com/on-prem/transactions/transaction-functions.html#dbfn-cas)
 to achieve a write-once behaviour.
 The yoltq system treats cas failures as job successes
 when a consumer has `:allow-cas-failure?` set to `true` in its options.
@@ -154,18 +156,19 @@ the payload. It can be added like this:
   ; An optional map of queue opts
   {:allow-cas-failure? true ; Treat [:db.cas ...] failures as success. This is one way for the
                             ; consumer function to ensure idempotence.
-   :valid-payload? (fn [payload] (some? (:id payload))) ; Function that verifies payload. Should return truthy for valid payloads.
+   :valid-payload? (fn [payload] (some? (:id payload))) ; Function that verifies payload.
+                                                        ; Should return truthy for valid payloads.
                                                         ; The default function always returns true.
    :max-retries 10})        ; Specify maximum number of times an item will be retried. Default: 10000.
                             ; If :max-retries is given as 0, the job will ~always be retried, i.e.
                             ; 9223372036854775807 times (Long/MAX_VALUE).
 ```
 
-The `payload` will be deserialized from the database using `clojure.edn/read-string` before invocation, i.e.
-you will get back what you put into `yq/put`.
+The `payload` will be deserialized from the database using `clojure.edn/read-string` before
+invocation, i.e. you will get back what you put into `yq/put`.
 
-The yoltq system treats a queue consumer function invocation as successful if it does not throw an exception.
-Any return value, be it `nil`, `false`, `true`, etc. is considered a success.
+The yoltq system treats a queue consumer function invocation as successful if it does not throw
+an exception. Any return value, be it `nil`, `false`, `true`, etc. is considered a success.
 
 ### Listening for queue jobs
 
@@ -251,7 +254,8 @@ For example if you want to use [nippy](https://github.com/ptaoussanis/nippy):
 
 ### Partitions
 
-Yoltq supports specifying which [partition](https://docs.datomic.com/on-prem/schema/schema.html#partitions)
+Yoltq supports specifying which
+[partition](https://docs.datomic.com/on-prem/schema/schema.html#partitions)
 queue entities should belong to.
 The default function is:
 ```clojure
@@ -270,7 +274,8 @@ E.g.:
 ### All configuration options
 
 For an exhaustive list of all configuration options,
-see [yq/default-opts](https://github.com/ivarref/yoltq/blob/main/src/com/github/ivarref/yoltq.clj#L21).
+see
+[yq/default-opts](https://github.com/ivarref/yoltq/blob/main/src/com/github/ivarref/yoltq.clj#L21).
 
 
 # Regular and REPL usage
@@ -426,11 +431,17 @@ Note: I have not tried these libraries myself.
 
 If you liked this library, you may also like:
 
-* [conformity](https://github.com/avescodes/conformity): A Clojure/Datomic library for idempotently transacting norms into your database – be they schema, data, or otherwise.
-* [datomic-schema](https://github.com/ivarref/datomic-schema): Simplified writing of Datomic schemas (works with conformity).
-* [double-trouble](https://github.com/ivarref/double-trouble):  Handle duplicate Datomic transactions with ease.
-* [gen-fn](https://github.com/ivarref/gen-fn): Generate Datomic function literals from regular Clojure namespaces.
-* [rewriting-history](https://github.com/ivarref/rewriting-history): A library to rewrite Datomic history.
+* [conformity](https://github.com/avescodes/conformity):
+  A Clojure/Datomic library for idempotently transacting norms into your database – be they schema,
+  data, or otherwise.
+* [datomic-schema](https://github.com/ivarref/datomic-schema):
+  Simplified writing of Datomic schemas (works with conformity).
+* [double-trouble](https://github.com/ivarref/double-trouble):
+  Handle duplicate Datomic transactions with ease.
+* [gen-fn](https://github.com/ivarref/gen-fn):
+  Generate Datomic function literals from regular Clojure namespaces.
+* [rewriting-history](https://github.com/ivarref/rewriting-history):
+  A library to rewrite Datomic history.
 
 ## Change log
 
@@ -458,7 +469,8 @@ Added multicast support for `datomic.api/tx-report-queue`:
 ; ^^ consume my-q1 just like you would do `datomic.api/tx-report-queue`
 
 (def my-q2 (yq/get-tx-report-queue-multicast! conn :q-id-2))
-; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue` for the given `conn`
+; Both my-q1 and my-q2 will receive everything from `datomic.api/tx-report-queue`
+; for the given `conn`
 
 (def my-q3 (yq/get-tx-report-queue-multicast! conn :q-id-3 true))
 ; my-q3 sets the optional third argument, `send-end-token?`, to true.
@@ -504,6 +516,7 @@ Changed the default for `max-retries` from `10000` to `9223372036854775807`.
 Fixed reflection warnings.
 
 #### 2023-03-20 v0.2.64 [diff](https://github.com/ivarref/yoltq/compare/v0.2.63...v0.2.64)
+
 Added support for `max-retries` being `0`, meaning the job should be retried forever
 (or at least 9223372036854775807 times).
 
@@ -512,7 +525,8 @@ Changed the default for `max-retries` from `100` to `10000`.
 #### 2022-11-18 v0.2.63 [diff](https://github.com/ivarref/yoltq/compare/v0.2.62...v0.2.63)
 Added custom `:encode` and `:decode` support.
 
-Added support for specifying `:partifion-fn` to specify which partition a queue item should belong to.
+Added support for specifying `:partifion-fn` to specify
+which partition a queue item should belong to.
 It defaults to:
 ```clojure
 (defn default-partition-fn [_queue-name]
