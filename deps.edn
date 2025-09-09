@@ -1,31 +1,40 @@
-{:deps      {com.github.ivarref/double-trouble {:mvn/version "0.1.102"}
-             org.clojure/tools.logging         {:mvn/version "1.2.4"}
-             org.clojure/clojure               {:mvn/version "1.11.1"}}
+{:deps
+ {com.github.ivarref/double-trouble {:mvn/version "0.1.102"}
+  org.clojure/tools.logging         {:mvn/version "1.2.4"}
+  org.clojure/clojure               {:mvn/version "1.11.1"}
+  com.datomic/peer                  {:mvn/version "1.0.7364"}}
 
- :paths     ["src"]
+ :paths
+ ["src"]
 
- :aliases   {:datomic {:extra-deps {com.datomic/peer                         {:mvn/version "1.0.7075" :exclusions [org.slf4j/slf4j-nop]}}}
-             :test    {:extra-paths ["test"]
-                       :extra-deps  {ivarref/datomic-schema                  {:mvn/version "0.2.0"}
-                                     com.taoensso/timbre                     {:mvn/version "5.2.1"}
-                                     com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
-                                     clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
-                                     com.datomic/peer                        {:mvn/version "1.0.7075" :exclusions [org.slf4j/slf4j-nop]}
-                                     org.postgresql/postgresql               {:mvn/version "9.3-1102-jdbc41"}
-                                     com.taoensso/nippy                      {:mvn/version "3.2.0"}
-                                     io.github.cognitect-labs/test-runner    {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}
-                       :jvm-opts    ["-DDISABLE_SPY=true"
-                                     "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:error"]
-                       :main-opts   ["--report" "stderr" "-m" "cognitect.test-runner"]}
+ :aliases
+ {:test
+  {:extra-paths ["test"]
+   :extra-deps  {ivarref/datomic-schema                  {:mvn/version "0.2.0"}
+                 com.taoensso/timbre                     {:mvn/version "5.2.1"}
+                 com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
+                 clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
+                 org.postgresql/postgresql               {:mvn/version "9.3-1102-jdbc41"}
+                 com.taoensso/nippy                      {:mvn/version "3.2.0"}
+                 io.github.cognitect-labs/test-runner    {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}
+   :exec-fn     cognitect.test-runner.api/test
+   :jvm-opts    ["-DDISABLE_SPY=true"
+                 "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:error"]
+   :main-opts   ["--report" "stderr" "-m" "cognitect.test-runner"]}
 
-             :jar     {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
-                                                     :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
-                       :main-opts  ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "target/out.jar"]}
+  :repl
+  {:extra-paths ["test"]
+   :extra-deps  {com.bhauman/rebel-readline              {:mvn/version "0.1.5"}
+                 ivarref/datomic-schema                  {:mvn/version "0.2.0"}
+                 com.taoensso/timbre                     {:mvn/version "5.2.1"}
+                 com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
+                 clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
+                 org.postgresql/postgresql               {:mvn/version "9.3-1102-jdbc41"}
+                 com.taoensso/nippy                      {:mvn/version "3.2.0"}}
+   :exec-fn     rebel-readline.tool/repl
+   :exec-args   {}
+   :main-opts   ["-m" "rebel-readline.main"]}
 
-             :release {:extra-deps {ivarref/pom-patch {:mvn/version "0.1.16"}}}
-
-             :deploy  {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.0"}}
-                       :exec-fn    deps-deploy.deps-deploy/deploy
-                       :exec-args  {:installer      :remote
-                                    :sign-releases? false
-                                    :artifact       "target/out.jar"}}}}
+  :build
+  {:deps       {com.github.liquidz/build.edn {:mvn/version "0.11.241"}}
+   :ns-default build-edn.main}}}

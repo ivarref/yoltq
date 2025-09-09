@@ -3,6 +3,8 @@
             [taoensso.timbre :as timbre]
             [clojure.string :as str]))
 
+(set! *warn-on-reflection* true)
+
 (def level-colors
   {;:warn colors/red
    :error colors/red})
@@ -46,7 +48,7 @@
 
                   (color-f (force msg_))
 
-                  #_maybe-stacktrace))))
+                  maybe-stacktrace))))
 
 
     (catch Throwable t
