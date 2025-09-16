@@ -257,27 +257,27 @@
          (sort-by (juxt :qname :status))
          (vec))))
 
-(defn batch-progress [queue-name batch-name]
+(defn job-group-progress [queue-name job-group-name]
   (let [{:keys [conn]} @*config*
         db (d/db conn)]
-    (->> (d/q '[:find ?e ?qname ?bname ?status
+    (->> (d/q '[:find ?e ?qname ?jgname ?status
                 :keys :e :qname :bname :status
-                :in $ ?qname ?bname
+                :in $ ?qname ?jgname
                 :where
                 [?e :com.github.ivarref.yoltq/queue-name ?qname]
-                [?e :com.github.ivarref.yoltq/batch-name ?bname]
+                [?e :com.github.ivarref.yoltq/job-group-name ?jgname]
                 [?e :com.github.ivarref.yoltq/status ?status]]
-              db queue-name batch-name)
+              db queue-name job-group-name)
          (mapv #(select-keys % [:qname :bname :status]))
          (mapv (fn [qitem] {qitem 1}))
          (reduce (partial merge-with +) {})
          (mapv (fn [[{:keys [qname bname status]} v]]
                  (array-map
                   :qname qname
-                  :batch-name bname
+                  :job-group-name bname
                   :status status
                   :count v)))
-         (sort-by (juxt :qname :batch-name :status))
+         (sort-by (juxt :qname :job-group-name :status))
          (vec))))
 
 (defn get-errors [qname]
