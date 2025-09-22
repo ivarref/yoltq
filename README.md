@@ -481,9 +481,15 @@ If you liked this library, you may also like:
 
 #### [Unreleased]
 
+Added support for [groups of jobs](#groups-of-jobs).
+Thanks [Stefan van den Oord](https://github.com/svdo)!
+
 #### [0.2.85] - 2025-07-29
 
+Same as v0.2.82, but without the `v` prefix.
+
 #### [v0.2.82] - 2025-06-18
+
 Added support for specifying `tx-report-queue` as a keyword in `init!`. Yoltq will
 then not grab the datomic report queue, but use the one provided:
 
