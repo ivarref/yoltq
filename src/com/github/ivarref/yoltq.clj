@@ -257,6 +257,29 @@
          (sort-by (juxt :qname :status))
          (vec))))
 
+(defn job-group-progress [queue-name job-group]
+  (let [{:keys [conn]} @*config*
+        db (d/db conn)]
+    (->> (d/q '[:find ?e ?qname ?job-group ?status
+                :keys :e :qname :job-group :status
+                :in $ ?qname ?job-group
+                :where
+                [?e :com.github.ivarref.yoltq/queue-name ?qname]
+                [?e :com.github.ivarref.yoltq/job-group ?job-group]
+                [?e :com.github.ivarref.yoltq/status ?status]]
+              db queue-name job-group)
+         (mapv #(select-keys % [:qname :job-group :status]))
+         (mapv (fn [qitem] {qitem 1}))
+         (reduce (partial merge-with +) {})
+         (mapv (fn [[{:keys [qname job-group status]} v]]
+                 (array-map
+                  :qname qname
+                  :job-group job-group
+                  :status status
+                  :count v)))
+         (sort-by (juxt :qname :job-group :status))
+         (vec))))
+
 (defn get-errors [qname]
   (let [{:keys [conn]} @*config*
         db (d/db conn)]

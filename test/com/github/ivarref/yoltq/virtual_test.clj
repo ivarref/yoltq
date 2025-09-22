@@ -450,3 +450,25 @@
     @(d/transact conn [(yq/put :q "asdf")])
     (tq/consume! :q)
     (is (= @got-work "asdf"))))
+
+(deftest job-group-test
+  (let [conn (u/empty-conn)]
+    (yq/init! {:conn conn})
+    (yq/add-consumer! :q1 identity)
+    (yq/add-consumer! :q2 identity)
+    @(d/transact conn [(yq/put :q1 {:work 123} {:job-group :group1})
+                       (yq/put :q1 {:work 456} {:job-group :group2})
+                       (yq/put :q2 {:work 789} {:job-group :group1})])
+    (is (= [{:qname :q1
+             :job-group :group1
+             :status :init
+             :count 1}]
+           (yq/job-group-progress :q1 :group1)))
+
+    (is (= {:work 123} (tq/consume! :q1)))
+
+    (is (= [{:qname :q1
+             :job-group :group1
+             :status :done
+             :count 1}]
+           (yq/job-group-progress :q1 :group1)))))

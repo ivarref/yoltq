@@ -277,6 +277,40 @@ For an exhaustive list of all configuration options,
 see
 [yq/default-opts](https://github.com/ivarref/yoltq/blob/main/src/com/github/ivarref/yoltq.clj#L21).
 
+# Groups of Jobs
+
+Yoltq supports grouping jobs in a queue, and tracking the progress of such a
+group of jobs. Consider this example: your system is used by the marketing
+department to send emails to groups of users. Multiple colleagues in the
+marketing department could potentially do this at the same time, but they want
+to see the progress of their _own_ campagne, not that of _all_ emails being
+sent. When adding the jobs to the queue, you can specify the `job-group`
+parameter, in this case indicate which marketeer is running the jobs:
+
+```clojure
+(doseq [uid user-ids]
+  @(d/transact conn [(yq/put :send-mail
+                             ; Payload:
+                             {:user-id uid :from ... :to ... :body ...}
+                             ; Job options:
+                             {:job-group :mail-campagne/for-marketeer-42})]))
+```
+
+When you want to know the progress of that specific job group, and display it in
+your user interface, you can use `job-group-progress`, which returns a structure
+similar to `queue-stats`:
+
+```clojure
+(yq/job-group-progress :send-mail :mail-campagne/for-marketeer-42)
+;; => [{:qname :send-mail
+;;      :job-group :mail-campagne/for-marketeer-42
+;;      :status :init
+;;      :count 78}
+;;     {:qname :send-mail
+;;      :job-group :mail-campagne/for-marketeer-42
+;;      :status :done
+;;      :count 24}]
+```
 
 # Regular and REPL usage
 
