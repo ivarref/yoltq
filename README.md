@@ -481,6 +481,8 @@ If you liked this library, you may also like:
 
 #### [Unreleased]
 
+#### [0.2.94] - 2025-09-22
+
 Added support for [groups of jobs](#groups-of-jobs).
 Thanks [Stefan van den Oord](https://github.com/svdo)!
 
